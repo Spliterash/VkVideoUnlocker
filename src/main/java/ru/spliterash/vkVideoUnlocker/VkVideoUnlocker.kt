@@ -218,11 +218,16 @@ class VkVideoUnlocker(
         if (videoUrl == null)
             sendMessage(peerId, "Невозможно получить видео", messageId)
 
+        val notifyJob = launch {
+            delay(3000)
+            sendMessage(peerId, "Видео обрабатывается дольше чем обычно, я не завис", messageId)
+        }
         val uploadedId = httpClient.execute(HttpGet(videoUrl)).use { downloadResponse ->
             val downloadVideoStream = downloadResponse.entity.content
 
             upload(video, downloadVideoStream)
         }
+        notifyJob.cancel()
         addToCache(video, uploadedId)
         sendMessage(peerId, "Готово", messageId, "video$uploadedId")
 
