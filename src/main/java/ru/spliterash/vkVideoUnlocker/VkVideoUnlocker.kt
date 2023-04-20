@@ -16,6 +16,7 @@ import org.apache.commons.io.IOUtils
 import org.apache.http.client.methods.HttpGet
 import org.apache.http.impl.client.HttpClients
 import org.apache.http.message.BasicHeader
+import ru.spliterash.vkVideoUnlocker.exceptions.VideoTooLongException
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
@@ -132,6 +133,7 @@ class VkVideoUnlocker(
             client
                 .videos()
                 .delete(userActor, videoIdInt)
+                .ownerId(ownerIdInt)
                 .execute()
         }
 
@@ -139,6 +141,9 @@ class VkVideoUnlocker(
             .items
             .firstOrNull { it.id == videoIdInt && it.ownerId == ownerIdInt }
             ?: return null
+        if (video.duration > 60 * 3)
+            throw VideoTooLongException()
+
         // Пошёл кринж
         val url = if (video.files.mp4720 != null)
             video.files.mp4720
@@ -195,6 +200,13 @@ class VkVideoUnlocker(
         }
         val videoUrl: String? = try {
             findVideoUrl(video)
+        } catch (ex: VideoTooLongException) {
+            sendMessage(
+                peerId,
+                "Извини, но я не перезаливаю видео длиннее 3 минут",
+                messageId
+            )
+            return@launch
         } catch (ex: Exception) {
             sendMessage(
                 peerId,
