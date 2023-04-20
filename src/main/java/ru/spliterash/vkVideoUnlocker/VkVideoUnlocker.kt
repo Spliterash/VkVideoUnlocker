@@ -16,6 +16,8 @@ import org.apache.commons.io.IOUtils
 import org.apache.http.client.methods.HttpGet
 import org.apache.http.impl.client.HttpClients
 import org.apache.http.message.BasicHeader
+import ru.spliterash.vkVideoUnlocker.exceptions.AlreadyExistException
+import ru.spliterash.vkVideoUnlocker.exceptions.SelfVideoException
 import ru.spliterash.vkVideoUnlocker.exceptions.VideoTooLongException
 import java.io.File
 import java.io.FileInputStream
@@ -100,12 +102,20 @@ class VkVideoUnlocker(
     }
 
     private fun findVideoUrl(id: String): String? {
+        val cachedVideo = videoCache[id]
+        if (cachedVideo != null)
+            throw AlreadyExistException(cachedVideo)
+
         val split = id.split("_")
         val ownerId = split[0]
         val videoIdInt = split[1].toInt()
         val ownerIdInt = ownerId.toInt()
-        if (ownerId.startsWith("-"))
-            checkAndJoin(-ownerIdInt)
+        if (ownerId.startsWith("-")) {
+            val normalGroupId = -ownerIdInt
+            if (normalGroupId == groupActor.groupId)
+                throw SelfVideoException()
+            checkAndJoin(normalGroupId)
+        }
         try {
             client
                 .videos()
@@ -195,13 +205,14 @@ class VkVideoUnlocker(
 
 
     fun reUploadAndSend(peerId: Int, video: String, messageId: Int) = scope.launch {
-        val cachedVideo = videoCache[video]
-        if (cachedVideo != null) {
-            sendMessage(peerId, "Этот видос уже разблокирован", messageId, "video$cachedVideo")
-            return@launch
-        }
         val videoUrl: String? = try {
             findVideoUrl(video)
+        } catch (ex: SelfVideoException) {
+            sendMessage(peerId, "Зачем ты мне мои же видосы кидаешь ?", messageId)
+            return@launch
+        } catch (ex: AlreadyExistException) {
+            sendMessage(peerId, "Этот видос уже разблокирован", messageId, "video${ex.cachedVideoId}")
+            return@launch
         } catch (ex: VideoTooLongException) {
             sendMessage(
                 peerId,
