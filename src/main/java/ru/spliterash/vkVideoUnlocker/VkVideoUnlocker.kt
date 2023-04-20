@@ -9,6 +9,7 @@ import com.vk.api.sdk.httpclient.HttpTransportClient
 import com.vk.api.sdk.objects.messages.ForeignMessage
 import com.vk.api.sdk.objects.messages.Forward
 import com.vk.api.sdk.objects.messages.Message
+import com.vk.api.sdk.objects.messages.MessageAttachment
 import com.vk.api.sdk.objects.video.Video
 import kotlinx.coroutines.*
 import org.apache.commons.io.IOUtils
@@ -260,7 +261,12 @@ class VkVideoUnlocker(
             if (!doICare)
                 return
             var video: Video? = null
-            if (message.replyMessage != null)
+            val wallAttachment = message.attachments?.firstOrNull { it.wall != null }?.wall
+            if (wallAttachment != null) {
+                video = wallAttachment.attachments.firstOrNull { it.video != null }?.video
+            }
+
+            if (video == null && message.replyMessage != null)
                 video = scanForVideo(message.replyMessage)
             if (video == null)
                 video = run {
@@ -282,19 +288,31 @@ class VkVideoUnlocker(
         }
 
         private fun scanForVideo(foreignMessage: ForeignMessage): Video? {
-            for (attachment in foreignMessage.attachments) {
-                if (attachment.video != null)
-                    return attachment.video
-            }
-            val attachment = foreignMessage.replyMessage?.attachments?.firstOrNull { it.video != null }
-            if (attachment != null)
-                return attachment.video
+            scanAttachment(foreignMessage.attachments)?.let { return it }
+
+           scanAttachment(foreignMessage.replyMessage?.attachments)?.let { return it }
+
             if (foreignMessage.fwdMessages == null)
                 return null
             for (fwdMessage in foreignMessage.fwdMessages) {
                 val video = scanForVideo(fwdMessage)
                 if (video != null)
                     return video
+            }
+            return null
+        }
+
+        private fun scanAttachment(attachments: List<MessageAttachment>?): Video? {
+            if (attachments == null)
+                return null
+            for (attachment in attachments) {
+                if (attachment.video != null)
+                    return attachment.video
+                if (attachment.wall != null) {
+                    val video = attachment.wall.attachments.firstOrNull { it.video != null }?.video
+                    if (video != null)
+                        return video
+                }
             }
             return null
         }
