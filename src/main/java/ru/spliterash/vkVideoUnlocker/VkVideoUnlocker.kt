@@ -141,7 +141,7 @@ class VkVideoUnlocker(
             .items
             .firstOrNull { it.id == videoIdInt && it.ownerId == ownerIdInt }
             ?: return null
-        if (video.duration > 60 * 3)
+        if (video.duration > 60 * 5)
             throw VideoTooLongException()
 
         // Пошёл кринж
@@ -203,7 +203,7 @@ class VkVideoUnlocker(
         } catch (ex: VideoTooLongException) {
             sendMessage(
                 peerId,
-                "Извини, но я не перезаливаю видео длиннее 3 минут",
+                "Извини, но я не перезаливаю видео длиннее 5 минут",
                 messageId
             )
             return@launch
