@@ -178,6 +178,7 @@ class VkVideoUnlocker(
 
         forward.conversationMessageIds = listOf(replyTo)
         forward.peerId = peerId
+        forward.isReply = true
 
         val request = client
             .messages()
