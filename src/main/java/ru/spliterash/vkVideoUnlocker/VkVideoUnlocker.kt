@@ -140,9 +140,7 @@ class VkVideoUnlocker(
             .firstOrNull { it.id == videoIdInt && it.ownerId == ownerIdInt }
             ?: return null
         // Пошёл кринж
-        val url = if (video.files.mp41080 != null)
-            video.files.mp41080
-        else if (video.files.mp4720 != null)
+        val url = if (video.files.mp4720 != null)
             video.files.mp4720
         else if (video.files.mp4480 != null)
             video.files.mp4480
