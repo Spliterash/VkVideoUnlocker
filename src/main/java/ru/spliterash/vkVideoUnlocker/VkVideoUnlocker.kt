@@ -134,6 +134,7 @@ class VkVideoUnlocker(
                 .videos()
                 .delete(userActor, videoIdInt)
                 .ownerId(ownerIdInt)
+                .targetId(userActor.id)
                 .execute()
         }
 
