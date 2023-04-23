@@ -18,6 +18,7 @@ import org.apache.http.impl.client.HttpClients
 import org.apache.http.message.BasicHeader
 import ru.spliterash.vkVideoUnlocker.exceptions.AlreadyExistException
 import ru.spliterash.vkVideoUnlocker.exceptions.SelfVideoException
+import ru.spliterash.vkVideoUnlocker.exceptions.VideoFilesEmptyException
 import ru.spliterash.vkVideoUnlocker.exceptions.VideoTooLongException
 import java.io.File
 import java.io.FileInputStream
@@ -154,6 +155,8 @@ class VkVideoUnlocker(
             ?: return null
         if (video.duration > 60 * 5)
             throw VideoTooLongException()
+        if (video.files == null)
+            throw VideoFilesEmptyException(video.toPrettyString())
 
         // Пошёл кринж
         val url = if (video.files.mp4720 != null)
@@ -217,6 +220,13 @@ class VkVideoUnlocker(
             sendMessage(
                 peerId,
                 "Извини, но я не перезаливаю видео длиннее 5 минут",
+                messageId
+            )
+            return@launch
+        } catch (ex: VideoFilesEmptyException) {
+            sendMessage(
+                peerId,
+                "Видос получили, а файлов нет. Полный ответ:\n${ex.response}",
                 messageId
             )
             return@launch
