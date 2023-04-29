@@ -36,7 +36,7 @@ class VkVideoUnlocker(
     private val userActor: UserActor,
 ) {
     private val activateKeyword = listOf(
-        "[club220040910|@unlockdostup]",
+        "[club${groupActor.groupId}|",
         "разблоч",
         "разблокируй",
         "unlock",
