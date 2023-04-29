@@ -12,6 +12,8 @@ import com.vk.api.sdk.objects.messages.Message
 import com.vk.api.sdk.objects.messages.MessageAttachment
 import com.vk.api.sdk.objects.video.Video
 import kotlinx.coroutines.*
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import org.apache.commons.io.IOUtils
 import org.apache.http.client.methods.HttpGet
 import org.apache.http.impl.client.HttpClients
@@ -55,6 +57,7 @@ class VkVideoUnlocker(
     private val groups = hashSetOf<Int>()
     private val random = Random.asJavaRandom()
     private val videoCache = hashMapOf<String, String>()
+    private val cacheMutex = Mutex()
 
     fun refreshGroups() {
         val groupResponse = client
@@ -92,18 +95,16 @@ class VkVideoUnlocker(
         }
     }
 
-    private fun addToCache(original: String, reupload: String) {
+    private suspend fun addToCache(original: String, reupload: String) = cacheMutex.withLock {
         videoCache[original] = reupload
         val line = "$original:$reupload\n"
-
-
         val fileOutputStream = FileOutputStream(CACHE_FILE, true)
         fileOutputStream.write(line.encodeToByteArray())
         fileOutputStream.close()
     }
 
-    private fun findVideoUrl(id: String): String? {
-        val cachedVideo = videoCache[id]
+    private suspend fun findVideoUrl(id: String): String? {
+        val cachedVideo = cacheMutex.withLock { videoCache[id] }
         if (cachedVideo != null)
             throw AlreadyExistException(cachedVideo)
 
@@ -251,9 +252,8 @@ class VkVideoUnlocker(
             upload(video, downloadVideoStream)
         }
         notifyJob.cancel()
-        addToCache(video, uploadedId)
         sendMessage(peerId, "Готово", messageId, "video$uploadedId")
-
+        addToCache(video, uploadedId)
     }
 
     private fun upload(name: String, inputStream: InputStream): String {
