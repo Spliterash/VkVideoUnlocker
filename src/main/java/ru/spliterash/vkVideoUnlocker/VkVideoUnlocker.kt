@@ -1,11 +1,15 @@
 package ru.spliterash.vkVideoUnlocker
 
+import com.vk.api.sdk.client.AbstractQueryBuilder
 import com.vk.api.sdk.client.VkApiClient
 import com.vk.api.sdk.client.actors.GroupActor
 import com.vk.api.sdk.client.actors.UserActor
 import com.vk.api.sdk.events.longpoll.GroupLongPollApi
 import com.vk.api.sdk.exceptions.ApiException
 import com.vk.api.sdk.httpclient.HttpTransportClient
+import com.vk.api.sdk.objects.fave.GetItemType
+import com.vk.api.sdk.objects.groups.GroupFull
+import com.vk.api.sdk.objects.groups.GroupIsClosed
 import com.vk.api.sdk.objects.messages.ForeignMessage
 import com.vk.api.sdk.objects.messages.Forward
 import com.vk.api.sdk.objects.messages.Message
@@ -18,10 +22,9 @@ import org.apache.commons.io.IOUtils
 import org.apache.http.client.methods.HttpGet
 import org.apache.http.impl.client.HttpClients
 import org.apache.http.message.BasicHeader
-import ru.spliterash.vkVideoUnlocker.exceptions.AlreadyExistException
-import ru.spliterash.vkVideoUnlocker.exceptions.SelfVideoException
-import ru.spliterash.vkVideoUnlocker.exceptions.VideoFilesEmptyException
-import ru.spliterash.vkVideoUnlocker.exceptions.VideoTooLongException
+import ru.spliterash.vkVideoUnlocker.exceptions.*
+import ru.spliterash.vkVideoUnlocker.objects.VideoSearchResult
+import ru.spliterash.vkVideoUnlocker.vkApiFix.FaveGetQueryWithFullVideo
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
@@ -54,7 +57,7 @@ class VkVideoUnlocker(
     private val httpClient = HttpClients.custom()
         .setUserAgent("Java VK SDK/1.0")
         .build()
-    private val groups = hashSetOf<Int>()
+    private val groups = hashMapOf<Int, GroupFull>()
     private val random = Random.asJavaRandom()
     private val videoCache = hashMapOf<String, String>()
     private val cacheMutex = Mutex()
@@ -62,10 +65,15 @@ class VkVideoUnlocker(
     fun refreshGroups() {
         val groupResponse = client
             .groups()
-            .get(userActor)
+            .getObjectExtended(userActor)
             .count(1000)
+            .extended(true)
             .execute()
-        groups += groupResponse.items
+        groups.clear()
+
+        for (item in groupResponse.items) {
+            groups[item.id] = item
+        }
 
     }
 
@@ -103,7 +111,7 @@ class VkVideoUnlocker(
         fileOutputStream.close()
     }
 
-    private suspend fun findVideoUrl(id: String): String? {
+    private suspend fun findVideoUrl(id: String): VideoSearchResult {
         val cachedVideo = cacheMutex.withLock { videoCache[id] }
         if (cachedVideo != null)
             throw AlreadyExistException(cachedVideo)
@@ -112,48 +120,42 @@ class VkVideoUnlocker(
         val ownerId = split[0]
         val videoIdInt = split[1].toInt()
         val ownerIdInt = ownerId.toInt()
+        var privateVideo = false
         if (ownerId.startsWith("-")) {
             val normalGroupId = -ownerIdInt
             if (normalGroupId == groupActor.groupId)
                 throw SelfVideoException()
-            checkAndJoin(normalGroupId)
+            val group = checkAndJoin(normalGroupId)
+            if (group.isClosed != GroupIsClosed.OPEN)
+                privateVideo = true
         }
         try {
             client
-                .videos()
-                .add(userActor, videoIdInt, ownerIdInt)
+                .fave()
+                .addVideo(userActor, ownerIdInt, videoIdInt)
                 .execute()
         } catch (ex: ApiException) {
             if (ex.code != 800)
                 throw ex
         }
-        val myVideos = client
-            .videos()
-            .get(userActor)
+        val myVideos = FaveGetQueryWithFullVideo(client, userActor)
+            .itemType(GetItemType.VIDEO)
             .count(10)
-            .setHeaders(
-                arrayOf(
-                    BasicHeader(
-                        "user-agent",
-                        "KateMobileAndroid/99 lite-535 (Android 11; SDK 30; arm64-v8a; asus Zenfone Max Pro M1; ru)"
-                    )
-                )
-            )
+            .imAsus()
             .execute()
 
         scope.launch {
             client
-                .videos()
-                .delete(userActor, videoIdInt)
-                .ownerId(ownerIdInt)
-                .targetId(userActor.id)
+                .fave()
+                .removeVideo(userActor, ownerIdInt, videoIdInt)
                 .execute()
         }
 
         val video = myVideos
             .items
-            .firstOrNull { it.id == videoIdInt && it.ownerId == ownerIdInt }
-            ?: return null
+            .firstOrNull { it.video != null && it.video.id == videoIdInt && it.video.ownerId == ownerIdInt }
+            ?.video
+            ?: throw BookmarkNotFoundException()
         if (video.duration > 60 * 5)
             throw VideoTooLongException()
         if (video.files == null)
@@ -171,12 +173,25 @@ class VkVideoUnlocker(
         else
             null
 
-        return url.toString()
+        return VideoSearchResult(url.toString(), privateVideo);
     }
 
-    private fun checkAndJoin(group: Int) {
-        if (groups.contains(group))
-            return
+    private fun <T : AbstractQueryBuilder<*, *>> T.imAsus(): T {
+        setHeaders(
+            arrayOf(
+                BasicHeader(
+                    "user-agent",
+                    "KateMobileAndroid/99 lite-535 (Android 11; SDK 30; arm64-v8a; asus Zenfone Max Pro M1; ru)"
+                )
+            )
+        )
+        return this
+    }
+
+    private fun checkAndJoin(group: Int): GroupFull {
+        val joinedGroup = groups[group]
+        if (joinedGroup != null)
+            return joinedGroup
 
         client
             .groups()
@@ -184,7 +199,10 @@ class VkVideoUnlocker(
             .groupId(group)
             .execute()
 
-        groups += group
+        refreshGroups()
+
+
+        return groups[group]!!
     }
 
     fun sendMessage(peerId: Int, text: String, replyTo: Int, vararg attachments: String) {
@@ -209,8 +227,11 @@ class VkVideoUnlocker(
 
 
     fun reUploadAndSend(peerId: Int, video: String, messageId: Int) = scope.launch {
-        val videoUrl: String? = try {
+        val videoResponse = try {
             findVideoUrl(video)
+        } catch (ex: BookmarkNotFoundException) {
+            sendMessage(peerId, "Не удалось найти видео в закладах, напишите автору бота об этой проблеме", messageId)
+            return@launch
         } catch (ex: SelfVideoException) {
             sendMessage(peerId, "Зачем ты мне мои же видосы кидаешь ?", messageId)
             return@launch
@@ -239,24 +260,21 @@ class VkVideoUnlocker(
             )
             return@launch
         }
-        if (videoUrl == null)
-            sendMessage(peerId, "Невозможно получить видео", messageId)
-
         val notifyJob = launch {
             delay(3000)
             sendMessage(peerId, "Видео обрабатывается дольше чем обычно, я не завис", messageId)
         }
-        val uploadedId = httpClient.execute(HttpGet(videoUrl)).use { downloadResponse ->
+        val uploadedId = httpClient.execute(HttpGet(videoResponse.url)).use { downloadResponse ->
             val downloadVideoStream = downloadResponse.entity.content
 
-            upload(video, downloadVideoStream)
+            upload(video, downloadVideoStream, videoResponse.privateVideo)
         }
         notifyJob.cancel()
         sendMessage(peerId, "Готово", messageId, "video$uploadedId")
         addToCache(video, uploadedId)
     }
 
-    private fun upload(name: String, inputStream: InputStream): String {
+    private fun upload(name: String, inputStream: InputStream, private: Boolean = false): String {
         val file = Files.createTempFile("suka", "blyat").toFile()
         try {
             val output = file.outputStream()
@@ -267,6 +285,7 @@ class VkVideoUnlocker(
                 .save(userActor)
                 .groupId(groupActor.groupId)
                 .name(name)
+                .isPrivate(private)
                 .execute()
             val url = response.uploadUrl
 
