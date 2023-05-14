@@ -311,37 +311,41 @@ class VkVideoUnlocker(
         15
     ) {
         override fun messageNew(groupId: Int, message: Message) {
-            val doICare = if (message.peerId > 2000000000) {
-                val trimmedText = message.text.trimStart().lowercase()
-                activateKeyword.any { trimmedText.startsWith(it) }
-            } else true
-            if (!doICare)
-                return
-            var video: Video? = message.attachments?.firstOrNull { it.video != null }?.video
-            val wallAttachment = message.attachments?.firstOrNull { it.wall != null }?.wall
-            if (wallAttachment != null) {
-                video = wallAttachment.attachments.firstOrNull { it.video != null }?.video
-            }
-
-            if (video == null && message.replyMessage != null)
-                video = scanForVideo(message.replyMessage)
-            if (video == null)
-                video = run {
-                    if (message.fwdMessages == null)
-                        return
-
-                    for (fwdMessage in message.fwdMessages) {
-                        scanForVideo(fwdMessage)?.let {
-                            return@run it
-                        }
-                    }
-                    return@run null
+            try {
+                val doICare = if (message.peerId > 2000000000) {
+                    val trimmedText = message.text.trimStart().lowercase()
+                    activateKeyword.any { trimmedText.startsWith(it) }
+                } else true
+                if (!doICare)
+                    return
+                var video: Video? = message.attachments?.firstOrNull { it.video != null }?.video
+                val wallAttachment = message.attachments?.firstOrNull { it.wall != null }?.wall
+                if (wallAttachment != null) {
+                    video = wallAttachment.attachments.firstOrNull { it.video != null }?.video
                 }
 
-            if (video == null)
-                return
+                if (video == null && message.replyMessage != null)
+                    video = scanForVideo(message.replyMessage)
+                if (video == null)
+                    video = run {
+                        if (message.fwdMessages == null)
+                            return
 
-            reUploadAndSend(message.peerId, "${video.ownerId}_${video.id}", message.conversationMessageId)
+                        for (fwdMessage in message.fwdMessages) {
+                            scanForVideo(fwdMessage)?.let {
+                                return@run it
+                            }
+                        }
+                        return@run null
+                    }
+
+                if (video == null)
+                    return
+
+                reUploadAndSend(message.peerId, "${video.ownerId}_${video.id}", message.conversationMessageId)
+            } catch (ex: Exception) {
+                ex.printStackTrace()
+            }
         }
 
         private fun scanForVideo(foreignMessage: ForeignMessage): Video? {
