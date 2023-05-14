@@ -317,7 +317,7 @@ class VkVideoUnlocker(
             } else true
             if (!doICare)
                 return
-            var video: Video? = null
+            var video: Video? = message.attachments?.firstOrNull { it.video != null }?.video
             val wallAttachment = message.attachments?.firstOrNull { it.wall != null }?.wall
             if (wallAttachment != null) {
                 video = wallAttachment.attachments.firstOrNull { it.video != null }?.video
