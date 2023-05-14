@@ -4,7 +4,6 @@ import com.vk.api.sdk.client.AbstractQueryBuilder
 import com.vk.api.sdk.client.VkApiClient
 import com.vk.api.sdk.client.actors.GroupActor
 import com.vk.api.sdk.client.actors.UserActor
-import com.vk.api.sdk.events.longpoll.GroupLongPollApi
 import com.vk.api.sdk.exceptions.ApiException
 import com.vk.api.sdk.httpclient.HttpTransportClient
 import com.vk.api.sdk.objects.fave.GetItemType
@@ -25,6 +24,7 @@ import org.apache.http.message.BasicHeader
 import ru.spliterash.vkVideoUnlocker.exceptions.*
 import ru.spliterash.vkVideoUnlocker.objects.VideoSearchResult
 import ru.spliterash.vkVideoUnlocker.vkApiFix.FaveGetQueryWithFullVideo
+import ru.spliterash.vkVideoUnlocker.vkApiFix.FixedLongPollApi
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
@@ -81,8 +81,8 @@ class VkVideoUnlocker(
         loadCache()
         refreshGroups()
 
-        val poll = Poll(client, groupActor)
-        poll.run()
+        val poll = Poll(client)
+        poll.run(groupActor)
     }
 
     private fun loadCache() {
@@ -304,10 +304,8 @@ class VkVideoUnlocker(
 
     private inner class Poll(
         client: VkApiClient,
-        actor: GroupActor
-    ) : GroupLongPollApi(
+    ) : FixedLongPollApi(
         client,
-        actor,
         15
     ) {
         override fun messageNew(groupId: Int, message: Message) {
