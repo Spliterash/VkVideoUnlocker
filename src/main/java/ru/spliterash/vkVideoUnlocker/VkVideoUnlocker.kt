@@ -18,6 +18,7 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.apache.commons.io.IOUtils
+import org.apache.http.client.CookieStore
 import org.apache.http.client.methods.HttpGet
 import org.apache.http.impl.client.HttpClients
 import org.apache.http.message.BasicHeader
@@ -145,6 +146,7 @@ class VkVideoUnlocker(
             .execute()
 
         scope.launch {
+            delay(500)
             client
                 .fave()
                 .removeVideo(userActor, ownerIdInt, videoIdInt)
@@ -159,7 +161,7 @@ class VkVideoUnlocker(
         if (video.duration > 60 * 5)
             throw VideoTooLongException()
         if (video.files == null)
-            throw VideoFilesEmptyException(video.toPrettyString())
+            throw VideoFilesEmptyException()
 
         // Пошёл кринж
         val url = if (video.files.mp41080 != null)
@@ -172,8 +174,10 @@ class VkVideoUnlocker(
             video.files.mp4360
         else if (video.files.mp4240 != null)
             video.files.mp4240
+        else if (video.files.mp4144 != null)
+            video.files.mp4144
         else
-            null
+            throw VideoFilesEmptyException()
 
         return VideoSearchResult(url.toString(), privateVideo);
     }
@@ -250,7 +254,7 @@ class VkVideoUnlocker(
         } catch (ex: VideoFilesEmptyException) {
             sendMessage(
                 peerId,
-                "Видос получили, а файлов нет. Полный ответ:\n${ex.response}",
+                "Видос получили, а файлов нет",
                 messageId
             )
             return@launch
@@ -318,12 +322,19 @@ class VkVideoUnlocker(
                 } else true
                 if (!doICare)
                     return
-                var video: Video? = message.attachments?.firstOrNull { it.video != null }?.video
-                val wallAttachment = message.attachments?.firstOrNull { it.wall != null }?.wall
-                if (wallAttachment != null) {
-                    video = wallAttachment.attachments.firstOrNull { it.video != null }?.video
+                var video: Video? = null
+                val attachments = message.attachments
+                if (attachments != null) {
+                    video = attachments.firstOrNull { it.video != null }?.video
+                    val wallAttachment = attachments.firstOrNull { it.wall != null }?.wall
+                    if (wallAttachment != null) {
+                        video = wallAttachment.attachments.firstOrNull { it.video != null }?.video
+                    }
+                    if (video == null) {
+                        val reply = attachments.firstOrNull { it.wallReply != null }?.wallReply
+                        video = reply?.attachments?.firstOrNull { it.video != null }?.video
+                    }
                 }
-
                 if (video == null && message.replyMessage != null)
                     video = scanForVideo(message.replyMessage)
                 if (video == null)
@@ -351,7 +362,7 @@ class VkVideoUnlocker(
         private fun scanForVideo(foreignMessage: ForeignMessage): Video? {
             scanAttachment(foreignMessage.attachments)?.let { return it }
 
-           scanAttachment(foreignMessage.replyMessage?.attachments)?.let { return it }
+            scanAttachment(foreignMessage.replyMessage?.attachments)?.let { return it }
 
             if (foreignMessage.fwdMessages == null)
                 return null
@@ -371,6 +382,11 @@ class VkVideoUnlocker(
                     return attachment.video
                 if (attachment.wall != null) {
                     val video = attachment.wall.attachments.firstOrNull { it.video != null }?.video
+                    if (video != null)
+                        return video
+                }
+                if (attachment.wallReply != null) {
+                    val video = attachment.wallReply.attachments?.firstOrNull { it.video != null }?.video
                     if (video != null)
                         return video
                 }

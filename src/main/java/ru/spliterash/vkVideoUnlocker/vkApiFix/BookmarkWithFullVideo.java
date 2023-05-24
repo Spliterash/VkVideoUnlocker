@@ -50,7 +50,7 @@ public class BookmarkWithFullVideo implements Validable {
     private BookmarkType type;
 
     @SerializedName("video")
-    private VideoFull video;
+    private VideoFullFix video;
 
     public Integer getAddedDate() {
         return addedDate;
@@ -115,11 +115,11 @@ public class BookmarkWithFullVideo implements Validable {
         return this;
     }
 
-    public VideoFull getVideo() {
+    public VideoFullFix getVideo() {
         return video;
     }
 
-    public BookmarkWithFullVideo setVideo(VideoFull video) {
+    public BookmarkWithFullVideo setVideo(VideoFullFix video) {
         this.video = video;
         return this;
     }
