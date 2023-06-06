@@ -11,6 +11,7 @@ import com.vk.api.sdk.objects.callback.messages.CallbackMessage;
 import com.vk.api.sdk.objects.groups.LongPollServer;
 import com.vk.api.sdk.objects.groups.responses.GetLongPollServerResponse;
 import org.apache.http.ConnectionClosedException;
+import org.apache.http.impl.client.HttpClients;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -88,24 +89,20 @@ public class FixedLongPollApi extends EventsHandler {
     public void run(GroupActor actor) {
         Executors.newSingleThreadExecutor().execute(
                 () -> {
-                    try {
-                        LongPollServer lpServer = getLongPollServer(actor);
-                        handleUpdates(lpServer);
-                    } catch (Exception e) {
-                        run(actor);
-                    }
-                }
-        );
-    }
-
-    protected void run(UserActor actor, int groupId) {
-        Executors.newSingleThreadExecutor().execute(
-                () -> {
-                    try {
-                        LongPollServer lpServer = getLongPollServer(actor, groupId);
-                        handleUpdates(lpServer);
-                    } catch (ConnectionClosedException e) {
-                        run(actor, groupId);
+                    while (!Thread.currentThread().isInterrupted()) {
+                        try {
+                            LongPollServer lpServer = getLongPollServer(actor);
+                            if (lpServer == null) {
+                                LOG.warn("Failed to get lp server, waiting 10 second");
+                                Thread.sleep(10000);
+                                continue;
+                            }
+                            handleUpdates(lpServer);
+                        } catch (ConnectionClosedException ignored) {
+                            // IGNORE
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
                     }
                 }
         );
