@@ -7,6 +7,4 @@ build
 *.iml
 .idea
 
-group.txt
-user.txt
-videos.txt
+/config.txt

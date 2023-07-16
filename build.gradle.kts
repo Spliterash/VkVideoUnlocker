@@ -2,6 +2,7 @@ plugins {
     `java-library`
     id("com.github.johnrengelman.shadow") version "8.1.1"
     kotlin("jvm") version "1.8.0"
+
 }
 
 group = "ru.spliterash"
@@ -9,6 +10,7 @@ version = "1.0.0-SNAPSHOT"
 
 repositories {
     mavenCentral()
+    maven("https://repo.spliterash.ru/group")
 }
 tasks.jar {
     manifest {
@@ -23,6 +25,10 @@ dependencies {
     implementation("org.apache.logging.log4j:log4j-slf4j-impl:2.20.0")
     implementation("org.apache.logging.log4j:log4j-api:2.20.0")
     implementation("org.apache.logging.log4j:log4j-core:2.20.0")
+
+
+    implementation("ru.spliterash:sql-database-mysql-hikaricp:1.0.5")
+    implementation("org.mariadb.jdbc:mariadb-java-client:3.1.4")
 }
 
 tasks.assemble { dependsOn(tasks.shadowJar) }

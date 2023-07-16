@@ -15,42 +15,35 @@ import com.vk.api.sdk.objects.messages.Message
 import com.vk.api.sdk.objects.messages.MessageAttachment
 import com.vk.api.sdk.objects.video.Video
 import kotlinx.coroutines.*
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import org.apache.commons.io.IOUtils
-import org.apache.http.client.CookieStore
 import org.apache.http.client.methods.HttpGet
 import org.apache.http.impl.client.HttpClients
 import org.apache.http.message.BasicHeader
-import ru.spliterash.vkVideoUnlocker.exceptions.*
+import ru.spliterash.vkVideoUnlocker.exceptions.BookmarkNotFoundException
+import ru.spliterash.vkVideoUnlocker.exceptions.SelfVideoException
+import ru.spliterash.vkVideoUnlocker.exceptions.VideoFilesEmptyException
+import ru.spliterash.vkVideoUnlocker.exceptions.VideoTooLongException
 import ru.spliterash.vkVideoUnlocker.objects.VideoSearchResult
+import ru.spliterash.vkVideoUnlocker.storage.VideoEntity
+import ru.spliterash.vkVideoUnlocker.storage.VideoRepository
 import ru.spliterash.vkVideoUnlocker.vkApiFix.FaveGetQueryWithFullVideo
 import ru.spliterash.vkVideoUnlocker.vkApiFix.FixedLongPollApi
-import java.io.File
-import java.io.FileInputStream
-import java.io.FileOutputStream
 import java.io.InputStream
-import java.nio.charset.StandardCharsets
 import java.nio.file.Files
+import java.util.*
+import java.util.concurrent.ExecutorService
 import kotlin.random.Random
 import kotlin.random.asJavaRandom
 
-private val CACHE_FILE = File("videos.txt")
-
 class VkVideoUnlocker(
+    executor: ExecutorService,
+    private val repository: VideoRepository,
     private val groupActor: GroupActor,
     private val userActor: UserActor,
+    private val pokeUserActor: UserActor,
 ) {
-    private val activateKeyword = listOf(
-        "[club${groupActor.groupId}|",
-        "разблоч",
-        "разблокируй",
-        "unlock",
-        "пошёл нахуй со своим доступом",
-        "пошел нахуй со своим доступом"
-    )
     private val scope = CoroutineScope(
-        Dispatchers.IO +
+        executor.asCoroutineDispatcher() +
                 CoroutineExceptionHandler { _, ex -> ex.printStackTrace() } +
                 SupervisorJob()
     )
@@ -60,8 +53,7 @@ class VkVideoUnlocker(
         .build()
     private val groups = hashMapOf<Int, GroupFull>()
     private val random = Random.asJavaRandom()
-    private val videoCache = hashMapOf<String, String>()
-    private val cacheMutex = Mutex()
+    private val inProgress = Collections.synchronizedSet(hashSetOf<String>())
 
     fun refreshGroups() {
         val groupResponse = client
@@ -79,44 +71,13 @@ class VkVideoUnlocker(
     }
 
     fun start() {
-        loadCache()
         refreshGroups()
 
         val poll = Poll(client)
         poll.run(groupActor)
     }
 
-    private fun loadCache() {
-        if (!CACHE_FILE.isFile)
-            CACHE_FILE.createNewFile()
-        val fileInputStream = FileInputStream(CACHE_FILE)
-        val db = IOUtils.toString(fileInputStream, StandardCharsets.UTF_8)
-        for (line in db.split(Regex("[\n|\r]+"))) {
-            if (line.isBlank())
-                continue
-
-            val row = line.split(":")
-
-            val original = row[0]
-            val reuploaded = row[1]
-
-            videoCache[original] = reuploaded
-        }
-    }
-
-    private suspend fun addToCache(original: String, reupload: String) = cacheMutex.withLock {
-        videoCache[original] = reupload
-        val line = "$original:$reupload\n"
-        val fileOutputStream = FileOutputStream(CACHE_FILE, true)
-        fileOutputStream.write(line.encodeToByteArray())
-        fileOutputStream.close()
-    }
-
     private suspend fun findVideoUrl(id: String): VideoSearchResult {
-        val cachedVideo = cacheMutex.withLock { videoCache[id] }
-        if (cachedVideo != null)
-            throw AlreadyExistException(cachedVideo)
-
         val split = id.split("_")
         val ownerId = split[0]
         val videoIdInt = split[1].toInt()
@@ -182,6 +143,19 @@ class VkVideoUnlocker(
         return VideoSearchResult(url.toString(), privateVideo);
     }
 
+    private fun videoIsPrivate(videoId: String): Boolean {
+        val response = client
+            .videos()
+            .get(pokeUserActor)
+            .videos(videoId)
+            .extended(true)
+            .fields("privacy_view")
+            .executeAsString()
+
+        // Мне впдалу это парсить вручную
+        return response.contains("\"content_restricted\":1");
+    }
+
     private fun <T : AbstractQueryBuilder<*, *>> T.imAsus(): T {
         setHeaders(
             arrayOf(
@@ -232,52 +206,111 @@ class VkVideoUnlocker(
     }
 
 
-    fun reUploadAndSend(peerId: Int, video: String, messageId: Int) = scope.launch {
-        val videoResponse = try {
-            findVideoUrl(video)
-        } catch (ex: BookmarkNotFoundException) {
-            sendMessage(peerId, "Не удалось найти видео в закладах, напишите автору бота об этой проблеме", messageId)
-            return@launch
-        } catch (ex: SelfVideoException) {
-            sendMessage(peerId, "Зачем ты мне мои же видосы кидаешь ?", messageId)
-            return@launch
-        } catch (ex: AlreadyExistException) {
-            sendMessage(peerId, "Этот видос уже разблокирован", messageId, "video${ex.cachedVideoId}")
-            return@launch
-        } catch (ex: VideoTooLongException) {
-            sendMessage(
-                peerId,
-                "Извини, но я не перезаливаю видео длиннее 5 минут",
-                messageId
-            )
-            return@launch
-        } catch (ex: VideoFilesEmptyException) {
-            sendMessage(
-                peerId,
-                "Видос получили, а файлов нет",
-                messageId
-            )
-            return@launch
-        } catch (ex: Exception) {
-            sendMessage(
-                peerId,
-                "Ошибка получения ссылки на видео(${ex.javaClass.simpleName}): ${ex.message}",
-                messageId
-            )
-            return@launch
+    suspend fun reUploadAndSendIfNeed(peerId: Int, video: String, messageId: Int) = coroutineScope {
+        val videoEntity = repository.findVideo(video)
+        if (videoEntity != null) {
+            if (videoEntity.status == VideoEntity.Status.UNLOCKED) {
+                sendMessage(peerId, "Этот видос уже разблокирован", messageId, "video${videoEntity.unlockedId}")
+                return@coroutineScope
+            }
+            // status OPEN, нам не надо запариваться
+            return@coroutineScope
         }
-        val notifyJob = launch {
-            delay(3000)
-            sendMessage(peerId, "Видео обрабатывается дольше чем обычно, я не завис", messageId)
-        }
-        val uploadedId = httpClient.execute(HttpGet(videoResponse.url)).use { downloadResponse ->
-            val downloadVideoStream = downloadResponse.entity.content
 
-            upload(video, downloadVideoStream, videoResponse.privateVideo)
+        try {
+            if (!videoIsPrivate(video)) {
+                addAsOpen(video)
+                return@coroutineScope
+            }
+        } catch (ex: Exception) {
+            sendMessage(peerId, "Ошибка при получении статуса видео(${ex.javaClass}): ${ex.message}", messageId)
+            ex.printStackTrace()
+            return@coroutineScope
         }
-        notifyJob.cancel()
-        sendMessage(peerId, "Готово", messageId, "video$uploadedId")
-        addToCache(video, uploadedId)
+        // Если видео закрытое и мы о нём не знаем, начинается гомоёбля
+
+        if (!inProgress.add(video)) {
+            sendMessage(
+                peerId,
+                "Видео уже обрабатывается в другой беседе, а делать уведомление о готовности мне крайне в падлу, поэтому отправь этот видос ещё раз через минуту, спасибо за понимание",
+                peerId
+            )
+            return@coroutineScope
+        }
+
+        try {
+            val videoResponse = try {
+                findVideoUrl(video)
+            } catch (ex: BookmarkNotFoundException) {
+                sendMessage(
+                    peerId,
+                    "Не удалось найти видео в закладах, напишите автору бота об этой проблеме",
+                    messageId
+                )
+                return@coroutineScope
+            } catch (ex: SelfVideoException) {
+                sendMessage(peerId, "Зачем ты мне мои же видосы кидаешь ?", messageId)
+                return@coroutineScope
+            } catch (ex: VideoTooLongException) {
+                sendMessage(
+                    peerId,
+                    "Извини, но я не перезаливаю видео длиннее 5 минут",
+                    messageId
+                )
+                return@coroutineScope
+            } catch (ex: VideoFilesEmptyException) {
+                sendMessage(
+                    peerId,
+                    "Видос получили, а файлов нет",
+                    messageId
+                )
+                return@coroutineScope
+            } catch (ex: Exception) {
+                sendMessage(
+                    peerId,
+                    "Ошибка получения ссылки на видео(${ex.javaClass.simpleName}): ${ex.message}",
+                    messageId
+                )
+                return@coroutineScope
+            }
+            val notifyJob = launch {
+                delay(3000)
+                sendMessage(peerId, "Видео обрабатывается дольше чем обычно, я не завис", messageId)
+                delay(3000)
+                sendMessage(peerId, "Да да, всё ещё обрабатывается, потерпи чуть чуть", messageId)
+                delay(5000)
+                sendMessage(peerId, "Я не знаю что ты туда положил, но оно всё ещё обрабатывается", messageId)
+                delay(10000)
+                sendMessage(peerId, "ТЫ ТАМ ЧТО, 99 ЧАСОВОЙ ВИДОС КРИПЕРА ПЕРЕЗАЛИВАЕШЬ ?!?!?!?!", messageId)
+                delay(1000)
+                while (true) {
+                    sendMessage(peerId, "А может быть и завис....", messageId)
+                    delay(2000)
+                }
+            }
+            val uploadedId = httpClient.execute(HttpGet(videoResponse.url)).use { downloadResponse ->
+                val downloadVideoStream = downloadResponse.entity.content
+
+                upload(video, downloadVideoStream, videoResponse.privateVideo)
+            }
+            notifyJob.cancel()
+            sendMessage(peerId, "Готово", messageId, "video$uploadedId")
+            addAsUnlocked(video, uploadedId)
+        } finally {
+            inProgress.remove(video)
+        }
+    }
+
+    private suspend fun addAsOpen(video: String) {
+        val entity = VideoEntity(video, VideoEntity.Status.OPEN)
+
+        repository.save(entity)
+    }
+
+    private suspend fun addAsUnlocked(originalId: String, unlockedId: String) {
+        val entity = VideoEntity(originalId, VideoEntity.Status.UNLOCKED, unlockedId)
+
+        repository.save(entity)
     }
 
     private fun upload(name: String, inputStream: InputStream, private: Boolean = false): String {
@@ -316,12 +349,6 @@ class VkVideoUnlocker(
     ) {
         override fun messageNew(groupId: Int, message: Message) {
             try {
-                val doICare = if (message.peerId > 2000000000) {
-                    val trimmedText = message.text.trimStart().lowercase()
-                    activateKeyword.any { trimmedText.startsWith(it) }
-                } else true
-                if (!doICare)
-                    return
                 var video: Video? = null
                 val attachments = message.attachments
                 if (attachments != null) {
@@ -352,8 +379,17 @@ class VkVideoUnlocker(
 
                 if (video == null)
                     return
-
-                reUploadAndSend(message.peerId, "${video.ownerId}_${video.id}", message.conversationMessageId)
+                scope.launch {
+                    try {
+                        reUploadAndSendIfNeed(
+                            message.peerId,
+                            "${video.ownerId}_${video.id}",
+                            message.conversationMessageId
+                        )
+                    } catch (ex: Exception) {
+                        ex.printStackTrace()
+                    }
+                }
             } catch (ex: Exception) {
                 ex.printStackTrace()
             }

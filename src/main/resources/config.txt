@@ -1,0 +1,14 @@
+====MySQL====
+localhost
+3306
+root
+password
+unlocker
+====GROUP====
+group_id
+group_token
+====USER====
+user_id
+user_token
+====POKE_USER====
+poke_user_token
