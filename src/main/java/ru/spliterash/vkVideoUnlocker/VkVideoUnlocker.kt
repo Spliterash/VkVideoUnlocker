@@ -383,6 +383,8 @@ class VkVideoUnlocker(
 
                 if (video == null)
                     return
+                if (video.platform != null)
+                    return
                 scope.launch {
                     try {
                         reUploadAndSendIfNeed(
