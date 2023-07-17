@@ -19,6 +19,7 @@ import org.apache.commons.io.IOUtils
 import org.apache.http.client.methods.HttpGet
 import org.apache.http.impl.client.HttpClients
 import org.apache.http.message.BasicHeader
+import ru.spliterash.vkVideoUnlocker.dto.RequestInfo
 import ru.spliterash.vkVideoUnlocker.exceptions.BookmarkNotFoundException
 import ru.spliterash.vkVideoUnlocker.exceptions.SelfVideoException
 import ru.spliterash.vkVideoUnlocker.exceptions.VideoFilesEmptyException
@@ -53,7 +54,7 @@ class VkVideoUnlocker(
         .build()
     private val groups = hashMapOf<Int, GroupFull>()
     private val random = Random.asJavaRandom()
-    private val inProgress = Collections.synchronizedSet(hashSetOf<String>())
+    private val inProgress = Collections.synchronizedMap(hashMapOf<String, MutableList<RequestInfo>>())
 
     fun refreshGroups() {
         val groupResponse = client
@@ -189,6 +190,30 @@ class VkVideoUnlocker(
         return groups[group]!!
     }
 
+    fun sendMessage(list: List<RequestInfo>, text: String, vararg attachments: String) {
+        // Скопируем лист в массив, чтобы не получить concurrent по лицу
+        val array = list.toTypedArray()
+        for (info in array) {
+            val forward = Forward()
+
+            forward.conversationMessageIds = listOf(info.messageId)
+            forward.peerId = info.peerId
+            forward.isReply = true
+
+            val request = client
+                .messages()
+                .send(groupActor)
+                .message(text)
+                .peerId(info.peerId)
+                .randomId(random.nextInt())
+                .forward(forward)
+            if (attachments.isNotEmpty())
+                request.attachment(attachments.joinToString(","))
+
+            request.execute()
+        }
+    }
+
     fun sendMessage(peerId: Int, text: String, replyTo: Int, vararg attachments: String) {
         val forward = Forward()
 
@@ -210,11 +235,11 @@ class VkVideoUnlocker(
     }
 
 
-    suspend fun reUploadAndSendIfNeed(peerId: Int, video: String, messageId: Int) = coroutineScope {
+    suspend fun reUploadAndSendIfNeed(list: List<RequestInfo>, video: String) = coroutineScope {
         val videoEntity = repository.findVideo(video)
         if (videoEntity != null) {
             if (videoEntity.status == VideoEntity.Status.UNLOCKED) {
-                sendMessage(peerId, "Этот видос уже разблокирован", messageId, "video${videoEntity.unlockedId}")
+                sendMessage(list, "Этот видос уже разблокирован", "video${videoEntity.unlockedId}")
                 return@coroutineScope
             }
             // status OPEN, нам не надо запариваться
@@ -227,68 +252,53 @@ class VkVideoUnlocker(
                 return@coroutineScope
             }
         } catch (ex: Exception) {
-            sendMessage(peerId, "Ошибка при получении статуса видео(${ex.javaClass}): ${ex.message}", messageId)
+            sendMessage(list, "Ошибка при получении статуса видео(${ex.javaClass}): ${ex.message}")
             ex.printStackTrace()
             return@coroutineScope
         }
         // Если видео закрытое и мы о нём не знаем, начинается гомоёбля
-
-        if (!inProgress.add(video)) {
-            sendMessage(
-                peerId,
-                "Видео уже обрабатывается в другой беседе, а делать уведомление о готовности мне крайне в падлу, поэтому отправь этот видос ещё раз через минуту, спасибо за понимание",
-                peerId
-            )
-            return@coroutineScope
-        }
-
         try {
             val videoResponse = try {
                 findVideoUrl(video)
             } catch (ex: BookmarkNotFoundException) {
                 sendMessage(
-                    peerId,
+                    list,
                     "Не удалось найти видео в закладах, напишите автору бота об этой проблеме",
-                    messageId
                 )
                 return@coroutineScope
             } catch (ex: SelfVideoException) {
-                sendMessage(peerId, "Зачем ты мне мои же видосы кидаешь ?", messageId)
                 return@coroutineScope
             } catch (ex: VideoTooLongException) {
                 sendMessage(
-                    peerId,
-                    "Извини, но я не перезаливаю видео длиннее 5 минут",
-                    messageId
+                    list,
+                    "Извини, но я не перезаливаю видео длиннее 5 минут"
                 )
                 return@coroutineScope
             } catch (ex: VideoFilesEmptyException) {
                 sendMessage(
-                    peerId,
-                    "Видос получили, а файлов нет",
-                    messageId
+                    list,
+                    "Видос получили, а файлов нет"
                 )
                 return@coroutineScope
             } catch (ex: Exception) {
                 sendMessage(
-                    peerId,
-                    "Ошибка получения ссылки на видео(${ex.javaClass.simpleName}): ${ex.message}",
-                    messageId
+                    list,
+                    "Ошибка получения ссылки на видео(${ex.javaClass.simpleName}): ${ex.message}"
                 )
                 return@coroutineScope
             }
             val notifyJob = launch {
                 delay(3000)
-                sendMessage(peerId, "Видео обрабатывается дольше чем обычно, я не завис", messageId)
+                sendMessage(list, "Видео обрабатывается дольше чем обычно, я не завис")
                 delay(3000)
-                sendMessage(peerId, "Да да, всё ещё обрабатывается, потерпи чуть чуть", messageId)
+                sendMessage(list, "Да да, всё ещё обрабатывается, потерпи чуть чуть")
                 delay(5000)
-                sendMessage(peerId, "Я не знаю что ты туда положил, но оно всё ещё обрабатывается", messageId)
+                sendMessage(list, "Я не знаю что ты туда положил, но оно всё ещё обрабатывается")
                 delay(10000)
-                sendMessage(peerId, "ТЫ ТАМ ЧТО, 99 ЧАСОВОЙ ВИДОС КРИПЕРА ПЕРЕЗАЛИВАЕШЬ ?!?!?!?!", messageId)
+                sendMessage(list, "ТЫ ТАМ ЧТО, 99 ЧАСОВОЙ ВИДОС КРИПЕРА ПЕРЕЗАЛИВАЕШЬ ?!?!?!?!")
                 delay(1000)
                 while (true) {
-                    sendMessage(peerId, "А может быть и завис....", messageId)
+                    sendMessage(list, "А может быть и завис....")
                     delay(2000)
                 }
             }
@@ -298,7 +308,7 @@ class VkVideoUnlocker(
                 upload(video, downloadVideoStream, videoResponse.privateVideo)
             }
             notifyJob.cancel()
-            sendMessage(peerId, "Готово", messageId, "video$uploadedId")
+            sendMessage(list, "Готово", "video$uploadedId")
             addAsUnlocked(video, uploadedId)
         } finally {
             inProgress.remove(video)
@@ -385,17 +395,23 @@ class VkVideoUnlocker(
                     return
                 if (video.platform != null)
                     return
-                scope.launch {
-                    try {
-                        reUploadAndSendIfNeed(
-                            message.peerId,
-                            "${video.ownerId}_${video.id}",
-                            message.conversationMessageId
-                        )
-                    } catch (ex: Exception) {
-                        ex.printStackTrace()
-                    }
+                val videoId = "${video.ownerId}_${video.id}"
+                val alreadyInProgress = inProgress.computeIfAbsent(videoId) {
+                    Collections.synchronizedList(arrayListOf())
                 }
+                val new = alreadyInProgress.isEmpty()
+                alreadyInProgress.add(RequestInfo(message.peerId, message.conversationMessageId))
+                if (new)
+                    scope.launch {
+                        try {
+                            reUploadAndSendIfNeed(
+                                alreadyInProgress,
+                                videoId
+                            )
+                        } catch (ex: Exception) {
+                            ex.printStackTrace()
+                        }
+                    }
             } catch (ex: Exception) {
                 ex.printStackTrace()
             }
