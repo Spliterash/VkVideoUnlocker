@@ -153,7 +153,7 @@ class VkVideoUnlocker(
             .fields("privacy_view")
             .executeAsString()
 
-        if (response.contains("error_code") || response.contains("\"count\":0")) {
+        if (response.contains("error_code") || response.substring(0, 10).contains("\"count\":0")) {
             println(response)
             throw RuntimeException("Какая то непонятная ошибка, подробности в консоли")
         }
