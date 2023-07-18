@@ -144,7 +144,7 @@ class VkVideoUnlocker(
         return VideoSearchResult(url.toString(), privateVideo);
     }
 
-    private fun videoIsPrivate(videoId: String): Boolean {
+    private fun videoIsLocked(videoId: String): Boolean {
         val response = client
             .videos()
             .get(pokeUserActor)
@@ -247,7 +247,7 @@ class VkVideoUnlocker(
         }
 
         try {
-            if (!videoIsPrivate(video)) {
+            if (!videoIsLocked(video)) {
                 addAsOpen(video)
                 return@coroutineScope
             }
@@ -394,6 +394,8 @@ class VkVideoUnlocker(
                 if (video == null)
                     return
                 if (video.platform != null)
+                    return
+                if(video.isPrivate())
                     return
                 val videoId = "${video.ownerId}_${video.id}"
                 val alreadyInProgress = inProgress.computeIfAbsent(videoId) {
