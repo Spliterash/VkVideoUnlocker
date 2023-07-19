@@ -257,62 +257,58 @@ class VkVideoUnlocker(
             return@coroutineScope
         }
         // Если видео закрытое и мы о нём не знаем, начинается гомоёбля
-        try {
-            val videoResponse = try {
-                findVideoUrl(video)
-            } catch (ex: BookmarkNotFoundException) {
-                sendMessage(
-                    list,
-                    "Не удалось найти видео в закладах, напишите автору бота об этой проблеме",
-                )
-                return@coroutineScope
-            } catch (ex: SelfVideoException) {
-                return@coroutineScope
-            } catch (ex: VideoTooLongException) {
-                sendMessage(
-                    list,
-                    "Извини, но я не перезаливаю видео длиннее 5 минут"
-                )
-                return@coroutineScope
-            } catch (ex: VideoFilesEmptyException) {
-                sendMessage(
-                    list,
-                    "Видос получили, а файлов нет"
-                )
-                return@coroutineScope
-            } catch (ex: Exception) {
-                sendMessage(
-                    list,
-                    "Ошибка получения ссылки на видео(${ex.javaClass.simpleName}): ${ex.message}"
-                )
-                return@coroutineScope
-            }
-            val notifyJob = launch {
-                delay(3000)
-                sendMessage(list, "Видео обрабатывается дольше чем обычно, я не завис")
-                delay(3000)
-                sendMessage(list, "Да да, всё ещё обрабатывается, потерпи чуть чуть")
-                delay(5000)
-                sendMessage(list, "Я не знаю что ты туда положил, но оно всё ещё обрабатывается")
-                delay(10000)
-                sendMessage(list, "ТЫ ТАМ ЧТО, 99 ЧАСОВОЙ ВИДОС КРИПЕРА ПЕРЕЗАЛИВАЕШЬ ?!?!?!?!")
-                delay(1000)
-                while (true) {
-                    sendMessage(list, "А может быть и завис....")
-                    delay(2000)
-                }
-            }
-            val uploadedId = httpClient.execute(HttpGet(videoResponse.url)).use { downloadResponse ->
-                val downloadVideoStream = downloadResponse.entity.content
-
-                upload(video, downloadVideoStream, videoResponse.privateVideo)
-            }
-            notifyJob.cancel()
-            sendMessage(list, "Готово", "video$uploadedId")
-            addAsUnlocked(video, uploadedId)
-        } finally {
-            inProgress.remove(video)
+        val videoResponse = try {
+            findVideoUrl(video)
+        } catch (ex: BookmarkNotFoundException) {
+            sendMessage(
+                list,
+                "Не удалось найти видео в закладах, напишите автору бота об этой проблеме",
+            )
+            return@coroutineScope
+        } catch (ex: SelfVideoException) {
+            return@coroutineScope
+        } catch (ex: VideoTooLongException) {
+            sendMessage(
+                list,
+                "Извини, но я не перезаливаю видео длиннее 5 минут"
+            )
+            return@coroutineScope
+        } catch (ex: VideoFilesEmptyException) {
+            sendMessage(
+                list,
+                "Видос получили, а файлов нет"
+            )
+            return@coroutineScope
+        } catch (ex: Exception) {
+            sendMessage(
+                list,
+                "Ошибка получения ссылки на видео(${ex.javaClass.simpleName}): ${ex.message}"
+            )
+            return@coroutineScope
         }
+        val notifyJob = launch {
+            delay(3000)
+            sendMessage(list, "Видео обрабатывается дольше чем обычно, я не завис")
+            delay(3000)
+            sendMessage(list, "Да да, всё ещё обрабатывается, потерпи чуть чуть")
+            delay(5000)
+            sendMessage(list, "Я не знаю что ты туда положил, но оно всё ещё обрабатывается")
+            delay(10000)
+            sendMessage(list, "ТЫ ТАМ ЧТО, 99 ЧАСОВОЙ ВИДОС КРИПЕРА ПЕРЕЗАЛИВАЕШЬ ?!?!?!?!")
+            delay(1000)
+            while (true) {
+                sendMessage(list, "А может быть и завис....")
+                delay(2000)
+            }
+        }
+        val uploadedId = httpClient.execute(HttpGet(videoResponse.url)).use { downloadResponse ->
+            val downloadVideoStream = downloadResponse.entity.content
+
+            upload(video, downloadVideoStream, videoResponse.privateVideo)
+        }
+        notifyJob.cancel()
+        sendMessage(list, "Готово", "video$uploadedId")
+        addAsUnlocked(video, uploadedId)
     }
 
     private suspend fun addAsOpen(video: String) {
@@ -395,7 +391,7 @@ class VkVideoUnlocker(
                     return
                 if (video.platform != null)
                     return
-                if(video.isPrivate())
+                if (video.isPrivate())
                     return
                 val videoId = "${video.ownerId}_${video.id}"
                 val alreadyInProgress = inProgress.computeIfAbsent(videoId) {
@@ -412,6 +408,8 @@ class VkVideoUnlocker(
                             )
                         } catch (ex: Exception) {
                             ex.printStackTrace()
+                        } finally {
+                            inProgress.remove(videoId)
                         }
                     }
             } catch (ex: Exception) {
