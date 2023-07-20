@@ -1,14 +1,28 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-<Configuration status="info">
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN">
     <Appenders>
-        <Console name="Console" target="SYSTEM_OUT">
-            <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss} %-5p %c{1}:%L - %m%n"/>
+        <!-- Консольный вывод логов -->
+        <Console name="ConsoleAppender" target="SYSTEM_OUT">
+            <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n" />
         </Console>
+
+        <!-- Лог-файлы -->
+        <RollingFile name="RollingFileAppender" fileName="logs/application.log"
+                     filePattern="logs/application-%d{yyyy-MM-dd}.log">
+            <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n" />
+            <Policies>
+                <!-- Ограничиваем размер файла до 10 MB -->
+                <SizeBasedTriggeringPolicy size="10 MB" />
+            </Policies>
+            <DefaultRolloverStrategy max="30" />
+        </RollingFile>
     </Appenders>
 
     <Loggers>
+        <!-- Корневой логгер -->
         <Root level="info">
-            <AppenderRef ref="Console"/>
+            <AppenderRef ref="ConsoleAppender" />
+            <AppenderRef ref="RollingFileAppender" />
         </Root>
     </Loggers>
 </Configuration>
