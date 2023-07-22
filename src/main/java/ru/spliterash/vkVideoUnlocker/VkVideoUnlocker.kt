@@ -303,16 +303,15 @@ class VkVideoUnlocker(
         val notifyJob = launch {
             delay(3000)
             sendMessage(list, "Видео обрабатывается дольше чем обычно, я не завис")
-            delay(3000)
-            sendMessage(list, "Да да, всё ещё обрабатывается, потерпи чуть чуть")
-            delay(5000)
-            sendMessage(list, "Я не знаю что ты туда положил, но оно всё ещё обрабатывается")
             delay(10000)
+            sendMessage(list, "Да да, всё ещё обрабатывается, потерпи чуть чуть")
+            delay(20000)
+            sendMessage(list, "Я не знаю что ты туда положил, но оно всё ещё обрабатывается")
+            delay(25000)
             sendMessage(list, "ТЫ ТАМ ЧТО, 99 ЧАСОВОЙ ВИДОС КРИПЕРА ПЕРЕЗАЛИВАЕШЬ ?!?!?!?!")
-            delay(1000)
             while (true) {
-                sendMessage(list, "А может быть и завис....")
-                delay(2000)
+                delay(30000)
+                sendMessage(list, "Всё ещё в процессе")
             }
         }
         val uploadedId = httpClient.execute(HttpGet(videoResponse.url)).use { downloadResponse ->
