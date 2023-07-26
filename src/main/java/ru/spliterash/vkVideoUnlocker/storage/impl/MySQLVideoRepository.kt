@@ -36,8 +36,7 @@ class MySQLVideoRepository(
             .map {
                 VideoEntity(
                     id,
-                    VideoEntity.Status.valueOf(it.getString("status")),
-                    it.getObject("unlocked_id")?.toString()
+                    it.getObject("unlocked_id").toString()
                 )
             }
             .orElse(null)
@@ -45,10 +44,9 @@ class MySQLVideoRepository(
 
     override suspend fun save(entity: VideoEntity): Unit = withContext(Dispatchers.IO) {
         database.update(
-            "INSERT INTO videos (id,status,unlocked_id) values (:id,:status,:unlocked_id) on duplicate key update status = :status, unlocked_id = :unlocked_id",
+            "INSERT INTO videos (id,unlocked_id) values (:id,:unlocked_id) on duplicate key update unlocked_id = :unlocked_id",
             mapOf(
                 "id" to entity.id,
-                "status" to entity.status.name,
                 "unlocked_id" to entity.unlockedId
             )
         )

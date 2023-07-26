@@ -250,18 +250,13 @@ class VkVideoUnlocker(
     suspend fun reUploadAndSendIfNeed(list: List<RequestInfo>, video: String) = coroutineScope {
         val videoEntity = repository.findVideo(video)
         if (videoEntity != null) {
-            if (videoEntity.status == VideoEntity.Status.UNLOCKED) {
-                sendMessage(list, "Этот видос уже разблокирован", "video${videoEntity.unlockedId}")
-            } else if (videoEntity.status == VideoEntity.Status.OPEN) {
-                sendIsOpenVideo(list)
-            }
+            sendMessage(list, "Этот видос уже разблокирован", "video${videoEntity.unlockedId}")
             // status OPEN, нам не надо запариваться
             return@coroutineScope
         }
 
         try {
             if (!videoIsLocked(video)) {
-                addAsOpen(video)
                 sendIsOpenVideo(list)
                 return@coroutineScope
             }
@@ -321,19 +316,11 @@ class VkVideoUnlocker(
         }
         notifyJob.cancel()
         sendMessage(list, "Готово", "video$uploadedId")
-        addAsUnlocked(video, uploadedId)
+        saveUnlocked(video, uploadedId)
     }
 
-    private suspend fun addAsOpen(video: String): VideoEntity {
-        val entity = VideoEntity(video, VideoEntity.Status.OPEN)
-
-        repository.save(entity)
-
-        return entity
-    }
-
-    private suspend fun addAsUnlocked(originalId: String, unlockedId: String) {
-        val entity = VideoEntity(originalId, VideoEntity.Status.UNLOCKED, unlockedId)
+    private suspend fun saveUnlocked(originalId: String, unlockedId: String) {
+        val entity = VideoEntity(originalId, unlockedId)
 
         repository.save(entity)
     }
