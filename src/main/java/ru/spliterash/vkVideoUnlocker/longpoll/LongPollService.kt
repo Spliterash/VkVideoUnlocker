@@ -75,6 +75,7 @@ class LongPollService(
                             val info = ex.messageForUser()
                             message.reply(vkApi, info)
                         } catch (ex: Exception) {
+                            ex.printStackTrace()
                             message.reply(
                                 vkApi,
                                 "Произошла непредвиденная ошибка(${ex.javaClass.simpleName}): ${ex.message}"

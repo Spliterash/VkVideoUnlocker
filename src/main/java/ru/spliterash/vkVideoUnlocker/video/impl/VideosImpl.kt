@@ -1,5 +1,7 @@
 package ru.spliterash.vkVideoUnlocker.video.impl
 
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.kotlin.readValue
 import io.micronaut.context.annotation.Parameter
 import io.micronaut.context.annotation.Prototype
 import okhttp3.*
@@ -13,7 +15,6 @@ import ru.spliterash.vkVideoUnlocker.user.client.vkModels.VkVideoUploadResponse
 import ru.spliterash.vkVideoUnlocker.video.Video
 import ru.spliterash.vkVideoUnlocker.video.VideoAccessor
 import ru.spliterash.vkVideoUnlocker.video.api.Videos
-import ru.spliterash.vkVideoUnlocker.video.exceptions.UploadFailedException
 import ru.spliterash.vkVideoUnlocker.video.exceptions.VideoLockedException
 import ru.spliterash.vkVideoUnlocker.video.exceptions.VideoNotFoundException
 import ru.spliterash.vkVideoUnlocker.vk.VkHelper
@@ -25,6 +26,7 @@ private val log = LogFactory.getLog(VideosImpl::class.java)
 @Prototype
 class VideosImpl(
     @Parameter private val client: OkHttpClient,
+    private val mapper: ObjectMapper,
     private val helper: VkHelper
 ) : Videos {
 
@@ -62,7 +64,8 @@ class VideosImpl(
             video.title,
             video.platform,
             video.duration,
-            url
+            url,
+            video
         )
     }
 
@@ -131,11 +134,9 @@ class VideosImpl(
         val response = client
             .newCall(uploadRequest)
             .executeAsync()
-        val uploadRaw = response.body.string()
-        if (!response.isSuccessful)
-            throw UploadFailedException(uploadRaw)
+        val raw = response.body.string()
+        val mapped = mapper.readValue<VkVideoUploadResponse>(raw)
 
-        val (mapped, _) = helper.readResponse(response, VkVideoUploadResponse::class.java)
         return "-${groupId}_${mapped.videoId}"
     }
 

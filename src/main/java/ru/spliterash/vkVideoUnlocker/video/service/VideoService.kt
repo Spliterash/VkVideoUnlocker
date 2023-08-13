@@ -6,10 +6,14 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
-import ru.spliterash.vkVideoUnlocker.group.dto.GroupStatus
 import ru.spliterash.vkVideoUnlocker.group.WorkUserGroupService
+import ru.spliterash.vkVideoUnlocker.group.dto.GroupStatus
+import ru.spliterash.vkVideoUnlocker.user.client.vkModels.VkVideo
+import ru.spliterash.vkVideoUnlocker.user.client.vkModels.normalId
 import ru.spliterash.vkVideoUnlocker.video.entity.VideoEntity
+import ru.spliterash.vkVideoUnlocker.video.exceptions.VideoFromAnotherPlatformException
 import ru.spliterash.vkVideoUnlocker.video.exceptions.VideoLockedException
+import ru.spliterash.vkVideoUnlocker.video.exceptions.VideoPrivateException
 import ru.spliterash.vkVideoUnlocker.video.exceptions.WeDoNotWorkWithLockedUserVideosException
 import ru.spliterash.vkVideoUnlocker.video.impl.VideoAccessorFactory
 import ru.spliterash.vkVideoUnlocker.video.repository.VideoRepository
@@ -38,10 +42,18 @@ class VideoService(
             }
         }
 
+    fun baseCheckVideo(video: VkVideo) {
+        if (video.isPrivate)
+            throw VideoPrivateException()
+        if (video.platform != null)
+            throw VideoFromAnotherPlatformException()
+    }
+
     /**
      * Получить ID разблокированного видоса
      */
-    suspend fun getUnlockedId(originalVideoId: String): String {
+    suspend fun getUnlockedId(video: VkVideo): String {
+        val originalVideoId = video.normalId()
         val unlocked = videoRepository.findVideo(originalVideoId)
         if (unlocked != null)
             return unlocked.unlockedId

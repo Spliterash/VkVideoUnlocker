@@ -1,5 +1,6 @@
 package ru.spliterash.vkVideoUnlocker.video
 
+import ru.spliterash.vkVideoUnlocker.user.client.vkModels.VkVideo
 import java.net.URL
 
 data class Video(
@@ -7,5 +8,7 @@ data class Video(
     val name: String,
     val platform: String?,
     val duration: Int,
-    val url: URL?
+    val url: URL?,
+
+    val original: VkVideo
 )

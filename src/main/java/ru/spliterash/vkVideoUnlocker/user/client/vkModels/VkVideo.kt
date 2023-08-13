@@ -9,7 +9,8 @@ data class VkVideo(
     /**
      * 1 if video is private
      */
-    @JsonProperty("is_private") private val isPrivate: Boolean,
+    @JsonProperty("is_private")
+    val isPrivate: Boolean,
     /**
      * Video description
      */

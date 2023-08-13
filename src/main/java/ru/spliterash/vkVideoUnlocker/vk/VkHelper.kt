@@ -7,7 +7,6 @@ import com.fasterxml.jackson.module.kotlin.readValue
 import jakarta.inject.Singleton
 import okhttp3.Response
 import org.apache.commons.logging.LogFactory
-import org.slf4j.Logger
 import ru.spliterash.vkVideoUnlocker.vk.exceptions.VkApiException
 import ru.spliterash.vkVideoUnlocker.vk.exceptions.VkNetworkException
 
@@ -33,6 +32,8 @@ class VkHelper(
             throw VkApiException(error.code, error.msg)
         }
         val responseNode = node.get("response")
+        if (log.isDebugEnabled)
+            log.debug(raw)
         try {
             val mapped = mapper.convertValue(responseNode, type)
             return mapped to raw
