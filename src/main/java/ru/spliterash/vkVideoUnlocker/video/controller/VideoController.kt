@@ -10,13 +10,14 @@ import io.micronaut.http.annotation.PathVariable
 import io.micronaut.http.server.types.files.StreamedFile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import ru.spliterash.vkVideoUnlocker.video.Routes
 import ru.spliterash.vkVideoUnlocker.video.service.VideoService
 
 @Controller
 class VideoController(
     private val videoService: VideoService,
 ) {
-    @Get("/videos/download/{id}")
+    @Get(Routes.DOWNLOAD)
     suspend fun download(
         @PathVariable("id") id: String,
         @Header("Range", defaultValue = "") rangeHeader: String?,
