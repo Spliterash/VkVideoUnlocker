@@ -11,4 +11,6 @@ abstract class VkUnlockerException : RuntimeException {
         enableSuppression,
         writableStackTrace
     )
+
+    abstract fun messageForUser(): String
 }

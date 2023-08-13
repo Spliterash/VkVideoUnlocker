@@ -8,7 +8,6 @@ interface Videos {
     /**
      * Получить видео
      */
-    @Throws(VideoLockedException::class)
     suspend fun getVideo(id: String): Video
 
     /**

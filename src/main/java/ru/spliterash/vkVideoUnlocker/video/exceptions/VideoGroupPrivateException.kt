@@ -5,4 +5,6 @@ import ru.spliterash.vkVideoUnlocker.common.exceptions.VkUnlockerException
 /**
  * Группа частная
  */
-class VideoGroupPrivateException : VkUnlockerException()
+class VideoGroupPrivateException : VkUnlockerException() {
+    override fun messageForUser() = "Видео принадлежит частной группе"
+}

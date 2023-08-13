@@ -10,8 +10,10 @@ import jakarta.inject.Singleton
 import kotlinx.coroutines.*
 import okhttp3.Request
 import okhttp3.executeAsync
+import ru.spliterash.vkVideoUnlocker.common.exceptions.VkUnlockerException
 import ru.spliterash.vkVideoUnlocker.common.okHttp.OkHttpFactory
 import ru.spliterash.vkVideoUnlocker.longpoll.message.MessageNew
+import ru.spliterash.vkVideoUnlocker.longpoll.message.reply
 import ru.spliterash.vkVideoUnlocker.longpoll.vkModels.LongPollResponse
 import ru.spliterash.vkVideoUnlocker.vk.actor.GroupUser
 import ru.spliterash.vkVideoUnlocker.vk.api.VkApi
@@ -67,7 +69,17 @@ class LongPollService(
                     val message = messageNew.message
 
                     supervisorScope.launch {
-                        messageChainService.proceedMessage(message)
+                        try {
+                            messageChainService.proceedMessage(message)
+                        } catch (ex: VkUnlockerException) {
+                            val info = ex.messageForUser()
+                            message.reply(vkApi, info)
+                        } catch (ex: Exception) {
+                            message.reply(
+                                vkApi,
+                                "Произошла непредвиденная ошибка(${ex.javaClass.simpleName}): ${ex.message}"
+                            )
+                        }
                     }
                 }
 

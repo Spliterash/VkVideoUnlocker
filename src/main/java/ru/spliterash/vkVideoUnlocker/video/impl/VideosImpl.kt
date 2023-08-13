@@ -10,7 +10,6 @@ import ru.spliterash.vkVideoUnlocker.user.client.vkModels.VideoFiles
 import ru.spliterash.vkVideoUnlocker.user.client.vkModels.VkSaveResponse
 import ru.spliterash.vkVideoUnlocker.user.client.vkModels.VkVideoGetResponse
 import ru.spliterash.vkVideoUnlocker.user.client.vkModels.VkVideoUploadResponse
-import ru.spliterash.vkVideoUnlocker.user.exceptions.UnknownClientProblemException
 import ru.spliterash.vkVideoUnlocker.video.Video
 import ru.spliterash.vkVideoUnlocker.video.VideoAccessor
 import ru.spliterash.vkVideoUnlocker.video.api.Videos
@@ -45,13 +44,10 @@ class VideosImpl(
             )
             .build()
 
-        val response = try {
-            client
-                .newCall(request)
-                .executeAsync()
-        } catch (ex: Exception) {
-            throw UnknownClientProblemException(ex)
-        }
+        val response = client
+            .newCall(request)
+            .executeAsync()
+
         val (mapped, raw) = helper.readResponse(response, VkVideoGetResponse::class.java)
         val video = mapped.items.firstOrNull() ?: throw VideoNotFoundException()
         if (video.contentRestricted)
