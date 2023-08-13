@@ -1,0 +1,17 @@
+micronaut:
+  application:
+    name: vk-unlocker
+  datasources:
+    default:
+      url: jdbc:mariadb://localhost:3306/your_database_name
+      driverClassName: org.mariadb.jdbc.Driver
+      username: your_username
+      password: your_password
+vk-unlocker:
+  group:
+    id: group_id
+    token: group_token
+  work-user:
+    token: action_user_token
+  poke-user:
+    token: poke_user_token

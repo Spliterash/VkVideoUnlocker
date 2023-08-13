@@ -7,4 +7,4 @@ build
 *.iml
 .idea
 
-/config.txt
+/application.yml

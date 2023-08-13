@@ -1,34 +1,56 @@
 plugins {
-    `java-library`
+//    `java-library`
+    kotlin("jvm") version "1.9.0"
+    kotlin("kapt") version "1.9.0"
     id("com.github.johnrengelman.shadow") version "8.1.1"
-    kotlin("jvm") version "1.8.0"
-
+    id("io.micronaut.minimal.application") version "4.0.2"
 }
 
 group = "ru.spliterash"
-version = "1.0.0-SNAPSHOT"
+version = "1.0.0"
 
 repositories {
     mavenCentral()
-    maven("https://repo.spliterash.ru/group")
 }
-tasks.jar {
-    manifest {
-        attributes["Main-Class"] = "ru.spliterash.vkVideoUnlocker.VkVideoUnlockerMainKt"
+application {
+    mainClass.set("ru.spliterash.vkVideoUnlocker.VkVideoUnlockerMainKt")
+}
+java {
+    sourceCompatibility = JavaVersion.toVersion("17")
+}
+tasks {
+    compileKotlin {
+        compilerOptions {
+            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+        }
     }
 }
 
-dependencies {
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.6.4")
-    implementation("com.vk.api:sdk:1.0.14")
-
-    implementation("org.apache.logging.log4j:log4j-slf4j-impl:2.20.0")
-    implementation("org.apache.logging.log4j:log4j-api:2.20.0")
-    implementation("org.apache.logging.log4j:log4j-core:2.20.0")
-
-
-    implementation("ru.spliterash:sql-database-mysql-hikaricp:1.0.5")
-    implementation("org.mariadb.jdbc:mariadb-java-client:3.1.4")
+micronaut {
+    runtime("netty")
 }
 
-tasks.assemble { dependsOn(tasks.shadowJar) }
+dependencies {
+    // Kotlin stuff
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm")
+    // Micronaut
+    implementation("io.micronaut.kotlin:micronaut-kotlin-runtime")
+    runtimeOnly("ch.qos.logback:logback-classic")
+    // Jackson
+    runtimeOnly("io.micronaut:micronaut-jackson-databind")
+    // Http Client
+    implementation("com.squareup.okhttp3:okhttp:4.11.0")
+    implementation("com.squareup.okhttp3:okhttp-coroutines-jvm:5.0.0-alpha.11")
+    // Jackson
+    implementation("com.fasterxml.jackson.core:jackson-databind")
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
+    // JDBI
+    implementation("io.micronaut.sql:micronaut-jdbc-hikari")
+    implementation("io.micronaut.sql:micronaut-jdbi")
+    implementation("org.jdbi:jdbi3-kotlin")
+    // MariaDB
+    implementation("org.mariadb.jdbc:mariadb-java-client")
+
+    // Yaml
+    runtimeOnly("org.yaml:snakeyaml")
+}
