@@ -1,7 +1,7 @@
 package ru.spliterash.vkVideoUnlocker.messageChain.download
 
 import jakarta.inject.Singleton
-import ru.spliterash.vkVideoUnlocker.longpoll.message.Message
+import ru.spliterash.vkVideoUnlocker.longpoll.message.RootMessage
 import ru.spliterash.vkVideoUnlocker.longpoll.message.reply
 import ru.spliterash.vkVideoUnlocker.message.utils.MessageUtils
 import ru.spliterash.vkVideoUnlocker.messageChain.MessageHandler
@@ -20,7 +20,7 @@ class DownloadVideoChain(
         "download"
     )
 
-    override suspend fun handle(message: Message): Boolean {
+    override suspend fun handle(message: RootMessage): Boolean {
         val text = message.text ?: return true
 
         if (!activationWords.contains(text.trim().lowercase()))

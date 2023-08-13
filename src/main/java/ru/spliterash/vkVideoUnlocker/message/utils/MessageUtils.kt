@@ -2,11 +2,11 @@ package ru.spliterash.vkVideoUnlocker.message.utils
 
 import jakarta.inject.Singleton
 import ru.spliterash.vkVideoUnlocker.longpoll.message.Attachment
-import ru.spliterash.vkVideoUnlocker.longpoll.message.attachments.ISomethingWithAttachments
+import ru.spliterash.vkVideoUnlocker.longpoll.message.attachments.AttachmentContainer
 
 @Singleton
 class MessageUtils {
-    fun <T> scanForAttachment(root: ISomethingWithAttachments, checker: Checker<T>): T? {
+    fun <T> scanForAttachment(root: AttachmentContainer, checker: Checker<T>): T? {
         for (attachment in root.attachments()) {
             val needle = checker.check(attachment)
             if (needle != null)
@@ -24,7 +24,7 @@ class MessageUtils {
                     return scanResult
             }
         }
-        for (somethingWithAttachments in root.innerSomething()) {
+        for (somethingWithAttachments in root.containers()) {
             val result = scanForAttachment(somethingWithAttachments, checker)
             if (result != null)
                 return result
