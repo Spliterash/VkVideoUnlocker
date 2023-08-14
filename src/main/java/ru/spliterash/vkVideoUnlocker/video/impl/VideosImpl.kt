@@ -8,14 +8,15 @@ import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
 import okio.BufferedSink
 import org.apache.commons.logging.LogFactory
-import ru.spliterash.vkVideoUnlocker.user.client.vkModels.VkSaveResponse
-import ru.spliterash.vkVideoUnlocker.user.client.vkModels.VkVideo
-import ru.spliterash.vkVideoUnlocker.user.client.vkModels.VkVideoGetResponse
-import ru.spliterash.vkVideoUnlocker.user.client.vkModels.VkVideoUploadResponse
+import ru.spliterash.vkVideoUnlocker.common.okHttp.executeAsync
 import ru.spliterash.vkVideoUnlocker.video.VideoAccessor
 import ru.spliterash.vkVideoUnlocker.video.api.Videos
 import ru.spliterash.vkVideoUnlocker.video.exceptions.VideoLockedException
 import ru.spliterash.vkVideoUnlocker.video.exceptions.VideoNotFoundException
+import ru.spliterash.vkVideoUnlocker.video.vkModels.VkSaveResponse
+import ru.spliterash.vkVideoUnlocker.video.vkModels.VkVideo
+import ru.spliterash.vkVideoUnlocker.video.vkModels.VkVideoGetResponse
+import ru.spliterash.vkVideoUnlocker.video.vkModels.VkVideoUploadResponse
 import ru.spliterash.vkVideoUnlocker.vk.VkHelper
 import ru.spliterash.vkVideoUnlocker.vk.vkModels.VkConst
 
@@ -48,7 +49,7 @@ class VideosImpl(
             .newCall(request)
             .executeAsync()
 
-        val (mapped, _) = helper.readResponse(response, VkVideoGetResponse::class.java)
+        val mapped = helper.readResponse(response, VkVideoGetResponse::class.java)
         val video = mapped.items.firstOrNull() ?: throw VideoNotFoundException()
         if (video.contentRestricted)
             throw VideoLockedException()
@@ -72,10 +73,10 @@ class VideosImpl(
             .newCall(request)
             .executeAsync()
 
-        val url = helper.readResponse(uploadUrlResponse, VkSaveResponse::class.java).first.uploadUrl
+        val url = helper.readResponse(uploadUrlResponse, VkSaveResponse::class.java).uploadUrl
         val info = accessor.load()
 
-        val uploadRequest = Request.Builder()
+        val response = Request.Builder()
             .url(url)
             .addHeader("Content-Type", "multipart/form-data")
             .post(
@@ -106,10 +107,8 @@ class VideosImpl(
                     .build()
             )
             .build()
+            .executeAsync(client)
 
-        val response = client
-            .newCall(uploadRequest)
-            .executeAsync()
         val raw = response.body.string()
         val mapped = mapper.readValue<VkVideoUploadResponse>(raw)
 

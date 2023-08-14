@@ -2,9 +2,8 @@ package ru.spliterash.vkVideoUnlocker.video.impl
 
 import jakarta.inject.Singleton
 import ru.spliterash.vkVideoUnlocker.common.okHttp.OkHttpFactory
-import ru.spliterash.vkVideoUnlocker.user.client.vkModels.VkVideo
+import ru.spliterash.vkVideoUnlocker.video.vkModels.VkVideo
 import ru.spliterash.vkVideoUnlocker.video.VideoAccessor
-import ru.spliterash.vkVideoUnlocker.video.exceptions.VideoEmptyUrlException
 
 @Singleton
 class VideoAccessorFactory(

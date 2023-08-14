@@ -2,7 +2,7 @@ package ru.spliterash.vkVideoUnlocker.longpoll.message
 
 import com.fasterxml.jackson.annotation.JsonProperty
 import ru.spliterash.vkVideoUnlocker.longpoll.message.attachments.SomethingWithAttachments
-import ru.spliterash.vkVideoUnlocker.user.client.vkModels.VkVideo
+import ru.spliterash.vkVideoUnlocker.video.vkModels.VkVideo
 
 data class Attachment(
     @JsonProperty("video") val video: VkVideo?,

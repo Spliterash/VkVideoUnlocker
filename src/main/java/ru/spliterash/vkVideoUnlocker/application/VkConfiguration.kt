@@ -1,4 +1,4 @@
-package ru.spliterash.vkVideoUnlocker.user.configuration
+package ru.spliterash.vkVideoUnlocker.application
 
 import io.micronaut.context.ApplicationContext
 import io.micronaut.context.annotation.Bean

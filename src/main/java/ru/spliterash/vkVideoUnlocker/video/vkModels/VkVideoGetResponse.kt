@@ -1,4 +1,4 @@
-package ru.spliterash.vkVideoUnlocker.user.client.vkModels
+package ru.spliterash.vkVideoUnlocker.video.vkModels
 
 data class VkVideoGetResponse(
     val count: Int,

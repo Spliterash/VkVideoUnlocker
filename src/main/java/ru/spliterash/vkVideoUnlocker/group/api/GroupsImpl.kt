@@ -41,7 +41,7 @@ class GroupsImpl(
         val response = client
             .newCall(request)
             .executeAsync()
-        val (mapped) = vkHelper.readResponse(response, VkGroupGetByIdResponse::class.java)
+        val mapped = vkHelper.readResponse(response, VkGroupGetByIdResponse::class.java)
         val status = when (mapped.isClosed) {
             VkGroupGetByIdResponse.ClosedStatus.OPEN -> GroupStatus.PUBLIC
             VkGroupGetByIdResponse.ClosedStatus.CLOSED -> GroupStatus.CLOSE
@@ -91,6 +91,6 @@ class GroupsImpl(
             .newCall(request)
             .executeAsync()
 
-        return vkHelper.readResponse(response, LongPollServerResponse::class.java).first
+        return vkHelper.readResponse(response, LongPollServerResponse::class.java)
     }
 }

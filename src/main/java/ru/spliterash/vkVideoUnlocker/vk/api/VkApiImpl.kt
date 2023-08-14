@@ -10,6 +10,7 @@ import ru.spliterash.vkVideoUnlocker.message.Messages
 import ru.spliterash.vkVideoUnlocker.video.api.Videos
 import ru.spliterash.vkVideoUnlocker.vk.actor.types.Actor
 import ru.spliterash.vkVideoUnlocker.vk.okhttp.VkInterceptor
+import ru.spliterash.vkVideoUnlocker.wall.api.Walls
 import java.util.concurrent.TimeUnit
 
 @Prototype
@@ -30,4 +31,5 @@ class VkApiImpl(
     override val videos: Videos by lazy { context.createBean(Videos::class.java, client, actor) }
     override val messages: Messages by lazy { context.createBean(Messages::class.java, client, actor) }
     override val groups: Groups by lazy { context.createBean(Groups::class.java, client, actor) }
+    override val walls: Walls by lazy { context.createBean(Walls::class.java, client, actor) }
 }

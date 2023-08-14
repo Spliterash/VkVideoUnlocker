@@ -1,5 +1,7 @@
 package ru.spliterash.vkVideoUnlocker.vk
 
+import com.fasterxml.jackson.core.type.TypeReference
+import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.ObjectNode
 import com.fasterxml.jackson.module.kotlin.convertValue
@@ -16,8 +18,20 @@ private val log = LogFactory.getLog(VkHelper::class.java)
 class VkHelper(
     private val mapper: ObjectMapper
 ) {
+    fun <T> readResponse(response: Response, type: Class<T>): T {
+        val node = checkAndGetResponse(response)
+
+        return mapper.convertValue(node, type)
+    }
+
+    fun <T> readResponse(response: Response, type: TypeReference<T>): T {
+        val node = checkAndGetResponse(response)
+
+        return mapper.convertValue(node, type)
+    }
+
     @Throws(VkApiException::class)
-    fun <T> readResponse(response: Response, type: Class<T>): Pair<T, String> {
+    private fun checkAndGetResponse(response: Response): JsonNode {
         val raw = response.body.string()
 
         if (!response.isSuccessful)
@@ -31,15 +45,7 @@ class VkHelper(
 
             throw VkApiException(error.code, error.msg)
         }
-        val responseNode = node.get("response")
-        if (log.isDebugEnabled)
-            log.debug(raw)
-        try {
-            val mapped = mapper.convertValue(responseNode, type)
-            return mapped to raw
-        } catch (ex: IllegalArgumentException) {
-            log.warn("Failed to map ${type.name}, body:\n$raw", ex)
-            throw ex
-        }
+
+        return node.get("response")
     }
 }

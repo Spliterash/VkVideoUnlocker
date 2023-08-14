@@ -2,7 +2,7 @@ package ru.spliterash.vkVideoUnlocker.video.dto
 
 import ru.spliterash.vkVideoUnlocker.group.WorkUserGroupService
 import ru.spliterash.vkVideoUnlocker.group.dto.GroupStatus
-import ru.spliterash.vkVideoUnlocker.user.client.vkModels.VkVideo
+import ru.spliterash.vkVideoUnlocker.video.vkModels.VkVideo
 import ru.spliterash.vkVideoUnlocker.video.VideoAccessor
 import ru.spliterash.vkVideoUnlocker.video.impl.VideoAccessorFactory
 

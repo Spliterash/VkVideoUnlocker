@@ -5,13 +5,13 @@ import jakarta.inject.Singleton
 import kotlinx.coroutines.*
 import ru.spliterash.vkVideoUnlocker.group.WorkUserGroupService
 import ru.spliterash.vkVideoUnlocker.group.dto.GroupStatus
-import ru.spliterash.vkVideoUnlocker.user.client.vkModels.VkVideo
-import ru.spliterash.vkVideoUnlocker.user.client.vkModels.normalId
 import ru.spliterash.vkVideoUnlocker.video.dto.FullVideo
 import ru.spliterash.vkVideoUnlocker.video.entity.VideoEntity
 import ru.spliterash.vkVideoUnlocker.video.exceptions.*
 import ru.spliterash.vkVideoUnlocker.video.impl.VideoAccessorFactory
 import ru.spliterash.vkVideoUnlocker.video.repository.VideoRepository
+import ru.spliterash.vkVideoUnlocker.video.vkModels.VkVideo
+import ru.spliterash.vkVideoUnlocker.video.vkModels.normalId
 import ru.spliterash.vkVideoUnlocker.vk.actor.GroupUser
 import ru.spliterash.vkVideoUnlocker.vk.actor.types.PokeUser
 import ru.spliterash.vkVideoUnlocker.vk.actor.types.WorkUser
@@ -51,29 +51,16 @@ class VideoService(
             throw SelfVideoException()
     }
 
-    /**
-     * Получить ID разблокированного видоса из longpoll
-     */
-    suspend fun getUnlockedId(videoWithoutUrl: VkVideo): String {
-        return getUnlockedId(InfoVideoHolder(videoWithoutUrl))
+    fun wrap(videoId: String): VideoHolder {
+        return StringHolder(videoId)
     }
 
-    /**
-     * Получить ID разблокированного видоса из полного видео
-     * Не знаю где это будет вызываться, но пускай будет
-     */
-    suspend fun getUnlockedId(fullVideo: FullVideo): String {
-        return getUnlockedId(FullVideoHolder(fullVideo))
+    fun wrap(video: VkVideo): VideoHolder {
+        return InfoVideoHolder(video)
     }
 
-    /**
-     * Получить ID разблокированного видоса из строки
-     */
-    suspend fun getUnlockedId(videoId: String): String {
-        return getUnlockedId(StringHolder(videoId))
-    }
 
-    private suspend fun getUnlockedId(holder: VideoHolder): String {
+    suspend fun getUnlockedId(holder: VideoHolder): String {
         val originalVideoId = holder.id
         return unlocksInProgress.computeIfAbsent(originalVideoId) {
             ignoreExceptionScope.async {
@@ -161,16 +148,6 @@ class VideoService(
         }
     }
 
-    private interface VideoHolder {
-        val id: String
-
-        /**
-         * Видео без ссылок на скачивание, чисто инфа
-         */
-        suspend fun video(): VkVideo
-        suspend fun fullVideo(): FullVideo
-    }
-
     private inner class StringHolder(override val id: String) : VideoHolder {
         private lateinit var full: FullVideo
         private suspend fun check() {
@@ -190,22 +167,17 @@ class VideoService(
     }
 
     private inner class InfoVideoHolder(val video: VkVideo) : VideoHolder {
+        private lateinit var full: FullVideo
         override val id: String
             get() = video.normalId()
 
         override suspend fun video() = video
 
         override suspend fun fullVideo(): FullVideo {
-            return getVideoWithTryingLockBehavior(id)
+            if (!this::full.isInitialized)
+                full = getVideoWithTryingLockBehavior(id)
+
+            return full
         }
-    }
-
-    private class FullVideoHolder(val video: FullVideo) : VideoHolder {
-        override val id: String
-            get() = video.video.normalId()
-
-        override suspend fun video() = video.video
-
-        override suspend fun fullVideo() = video
     }
 }

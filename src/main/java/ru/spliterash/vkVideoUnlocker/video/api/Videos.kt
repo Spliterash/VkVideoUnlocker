@@ -1,6 +1,6 @@
 package ru.spliterash.vkVideoUnlocker.video.api
 
-import ru.spliterash.vkVideoUnlocker.user.client.vkModels.VkVideo
+import ru.spliterash.vkVideoUnlocker.video.vkModels.VkVideo
 import ru.spliterash.vkVideoUnlocker.video.VideoAccessor
 
 interface Videos {

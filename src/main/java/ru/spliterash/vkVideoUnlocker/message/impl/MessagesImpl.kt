@@ -42,6 +42,6 @@ class MessagesImpl(
             .newCall(request)
             .executeAsync()
 
-        return vkHelper.readResponse(response, Int::class.java).first
+        return vkHelper.readResponse(response, Int::class.java)
     }
 }
