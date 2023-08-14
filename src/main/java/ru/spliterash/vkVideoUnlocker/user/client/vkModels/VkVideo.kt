@@ -1,6 +1,8 @@
 package ru.spliterash.vkVideoUnlocker.user.client.vkModels
 
 import com.fasterxml.jackson.annotation.JsonProperty
+import ru.spliterash.vkVideoUnlocker.video.exceptions.VideoEmptyUrlException
+import java.net.URL
 
 /**
  * Video object
@@ -54,5 +56,17 @@ data class VkVideo(
     val platform: String?,
     @JsonProperty("files")
     val files: VideoFiles?
-)
+) {
+    @Throws(VideoEmptyUrlException::class)
+    fun extractUrl(): URL = files?.run {
+        mp41080
+            ?: mp4720
+            ?: mp4480
+            ?: mp4360
+            ?: mp4240
+            ?: mp4144
+            ?: throw VideoEmptyUrlException()
+
+    } ?: throw VideoEmptyUrlException()
+}
 

@@ -8,18 +8,16 @@ import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
 import okio.BufferedSink
 import org.apache.commons.logging.LogFactory
-import ru.spliterash.vkVideoUnlocker.user.client.vkModels.VideoFiles
 import ru.spliterash.vkVideoUnlocker.user.client.vkModels.VkSaveResponse
+import ru.spliterash.vkVideoUnlocker.user.client.vkModels.VkVideo
 import ru.spliterash.vkVideoUnlocker.user.client.vkModels.VkVideoGetResponse
 import ru.spliterash.vkVideoUnlocker.user.client.vkModels.VkVideoUploadResponse
-import ru.spliterash.vkVideoUnlocker.video.Video
 import ru.spliterash.vkVideoUnlocker.video.VideoAccessor
 import ru.spliterash.vkVideoUnlocker.video.api.Videos
 import ru.spliterash.vkVideoUnlocker.video.exceptions.VideoLockedException
 import ru.spliterash.vkVideoUnlocker.video.exceptions.VideoNotFoundException
 import ru.spliterash.vkVideoUnlocker.vk.VkHelper
 import ru.spliterash.vkVideoUnlocker.vk.vkModels.VkConst
-import java.net.URL
 
 private val log = LogFactory.getLog(VideosImpl::class.java)
 
@@ -30,7 +28,7 @@ class VideosImpl(
     private val helper: VkHelper
 ) : Videos {
 
-    override suspend fun getVideo(id: String): Video {
+    override suspend fun getVideo(id: String): VkVideo {
         val request = VkConst.requestBuilder()
             .get()
             .addHeader(
@@ -50,35 +48,13 @@ class VideosImpl(
             .newCall(request)
             .executeAsync()
 
-        val (mapped, raw) = helper.readResponse(response, VkVideoGetResponse::class.java)
+        val (mapped, _) = helper.readResponse(response, VkVideoGetResponse::class.java)
         val video = mapped.items.firstOrNull() ?: throw VideoNotFoundException()
         if (video.contentRestricted)
             throw VideoLockedException()
-        val url = video.files?.extractUrl()
-        if (url == null && log.isWarnEnabled) {
-            log.warn("Video with empty url\n$raw")
-        }
 
-        return Video(
-            id,
-            video.title,
-            video.platform,
-            video.duration,
-            url,
-            video
-        )
+        return video
     }
-
-    private fun VideoFiles.extractUrl(): URL {
-        return mp41080
-            ?: mp4720
-            ?: mp4480
-            ?: mp4360
-            ?: mp4240
-            ?: mp4144
-            ?: throw RuntimeException("Url not found")
-    }
-
     override suspend fun upload(groupId: Int, name: String, private: Boolean, accessor: VideoAccessor): String {
         val request = VkConst.requestBuilder()
             .get()

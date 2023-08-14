@@ -2,19 +2,13 @@ package ru.spliterash.vkVideoUnlocker.video.service
 
 import com.github.benmanes.caffeine.cache.Caffeine
 import jakarta.inject.Singleton
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Deferred
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
+import kotlinx.coroutines.*
 import ru.spliterash.vkVideoUnlocker.group.WorkUserGroupService
 import ru.spliterash.vkVideoUnlocker.group.dto.GroupStatus
 import ru.spliterash.vkVideoUnlocker.user.client.vkModels.VkVideo
 import ru.spliterash.vkVideoUnlocker.user.client.vkModels.normalId
 import ru.spliterash.vkVideoUnlocker.video.entity.VideoEntity
-import ru.spliterash.vkVideoUnlocker.video.exceptions.VideoFromAnotherPlatformException
-import ru.spliterash.vkVideoUnlocker.video.exceptions.VideoLockedException
-import ru.spliterash.vkVideoUnlocker.video.exceptions.VideoPrivateException
-import ru.spliterash.vkVideoUnlocker.video.exceptions.WeDoNotWorkWithLockedUserVideosException
+import ru.spliterash.vkVideoUnlocker.video.exceptions.*
 import ru.spliterash.vkVideoUnlocker.video.impl.VideoAccessorFactory
 import ru.spliterash.vkVideoUnlocker.video.repository.VideoRepository
 import ru.spliterash.vkVideoUnlocker.vk.actor.GroupUser
@@ -41,22 +35,42 @@ class VideoService(
                 )
             }
         }
+    private val unlocksInProgress = hashMapOf<String, Deferred<String>>()
+    private val ignoreExceptionScope = CoroutineScope(
+        SupervisorJob()
+    )
 
     fun baseCheckVideo(video: VkVideo) {
         if (video.isPrivate)
             throw VideoPrivateException()
         if (video.platform != null)
             throw VideoFromAnotherPlatformException()
+        if (video.ownerId == -groupUser.id)
+            throw SelfVideoException()
     }
 
     /**
      * Получить ID разблокированного видоса
      */
     suspend fun getUnlockedId(video: VkVideo): String {
+        baseCheckVideo(video)
+
         val originalVideoId = video.normalId()
+        return unlocksInProgress.computeIfAbsent(originalVideoId) {
+            ignoreExceptionScope.async {
+                _getUnlockedId(originalVideoId)
+            }
+        }.await()
+    }
+
+    private suspend fun _getUnlockedId(originalVideoId: String): String {
         val unlocked = videoRepository.findVideo(originalVideoId)
         if (unlocked != null)
             return unlocked.unlockedId
+        val locked = isLocked(originalVideoId)
+        if (!locked)
+            throw VideoOpenException()
+
 
         val reUploadedId = reUpload(originalVideoId)
 

@@ -8,8 +8,6 @@ object VkUnlockerApplication {
     fun main(vararg args: String) {
         Micronaut.build(*args)
             .eagerInitSingletons(true)
-//            .eagerInitConfiguration(true)
-//            .eagerInitAnnotated(Factory::class.java)
             .start()
     }
 }

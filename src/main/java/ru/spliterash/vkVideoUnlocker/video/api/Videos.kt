@@ -1,14 +1,13 @@
 package ru.spliterash.vkVideoUnlocker.video.api
 
-import ru.spliterash.vkVideoUnlocker.video.Video
+import ru.spliterash.vkVideoUnlocker.user.client.vkModels.VkVideo
 import ru.spliterash.vkVideoUnlocker.video.VideoAccessor
-import ru.spliterash.vkVideoUnlocker.video.exceptions.VideoLockedException
 
 interface Videos {
     /**
      * Получить видео
      */
-    suspend fun getVideo(id: String): Video
+    suspend fun getVideo(id: String): VkVideo
 
     /**
      * Выгрузить видос

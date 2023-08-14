@@ -7,7 +7,6 @@ import ru.spliterash.vkVideoUnlocker.longpoll.message.isPersonalChat
 import ru.spliterash.vkVideoUnlocker.longpoll.message.reply
 import ru.spliterash.vkVideoUnlocker.message.utils.MessageUtils
 import ru.spliterash.vkVideoUnlocker.messageChain.MessageHandler
-import ru.spliterash.vkVideoUnlocker.user.client.vkModels.normalId
 import ru.spliterash.vkVideoUnlocker.video.service.VideoService
 import ru.spliterash.vkVideoUnlocker.vk.actor.GroupUser
 import ru.spliterash.vkVideoUnlocker.vk.api.VkApi
@@ -20,27 +19,18 @@ class DefaultVideoChain(
 ) : MessageHandler {
     override suspend fun handle(message: RootMessage): Boolean {
         val video = utils.scanForAttachment(message) { it.video } ?: return false
-        try {
-            videoService.baseCheckVideo(video)
+
+        val unlockedId = try {
+            videoService.getUnlockedId(video)
         } catch (ex: VkUnlockerException) {
             if (message.isPersonalChat())
                 throw ex
-            else
-                return true
-        }
-
-        val locked = videoService.isLocked(video.normalId())
-
-        if (!locked) {
-            if (message.isPersonalChat())
-                message.reply(client, "Видео открыто")
 
             return true
         }
-        val unlockedId = videoService.getUnlockedId(video)
         message.reply(client, attachments = "video$unlockedId")
 
-        return false
+        return true
     }
 
     override val priority: Int
