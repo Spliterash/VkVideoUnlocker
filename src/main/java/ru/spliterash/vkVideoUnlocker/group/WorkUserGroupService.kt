@@ -46,12 +46,15 @@ class WorkUserGroupService(
         try {
             when (actualInfo.groupStatus) {
                 GroupStatus.CLOSE -> {
-                    if (actualInfo.memberStatus == MemberStatus.NO) {
-                        user.groups.join(groupId)
-                        actualInfo.memberStatus = MemberStatus.REQUEST_SEND
+                    when (actualInfo.memberStatus) {
+                        MemberStatus.NO -> {
+                            user.groups.join(groupId)
+                            actualInfo.memberStatus = MemberStatus.REQUEST_SEND
+                        }
+
+                        MemberStatus.REQUEST_SEND -> throw VideoGroupRequestSendException()
+                        else -> Unit
                     }
-                    if (actualInfo.memberStatus == MemberStatus.REQUEST_SEND)
-                        throw VideoGroupRequestSendException()
                 }
 
                 GroupStatus.PRIVATE -> {

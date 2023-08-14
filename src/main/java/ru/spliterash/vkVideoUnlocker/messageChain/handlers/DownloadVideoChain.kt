@@ -26,7 +26,7 @@ class DownloadVideoChain(
 ) {
 
     override suspend fun handleAfterCheck(message: RootMessage) {
-        val video = utils.scanForAttachment(message) { it.video }
+        val video = utils.scanForVideo(message)
 
         if (video == null) {
             message.reply(

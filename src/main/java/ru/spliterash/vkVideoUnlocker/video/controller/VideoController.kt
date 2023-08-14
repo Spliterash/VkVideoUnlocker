@@ -22,7 +22,9 @@ class VideoController(
         @PathVariable("id") id: String,
         @Header("Range", defaultValue = "") rangeHeader: String?,
     ): HttpResponse<StreamedFile> = withContext(Dispatchers.IO) {
-        val (accessor, _) = videoService.getInfoForDownload(id)
+        val availableVideo = videoService.getInfoForDownload(id)
+        val accessor = availableVideo.toAccessor()
+
         val info = if (rangeHeader.isNullOrEmpty())
             accessor.load()
         else {

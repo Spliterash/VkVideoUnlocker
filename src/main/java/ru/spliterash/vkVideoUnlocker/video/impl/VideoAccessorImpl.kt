@@ -66,9 +66,6 @@ class VideoAccessorImpl(
     }
 
     private fun builder(): Request.Builder = Request.Builder().url(url)
-    fun finalize() {
-        log.info("Accessor finalized for video $url")
-    }
 
     companion object {
         private val log = LogFactory.getLog(VideoAccessorImpl::class.java)

@@ -15,5 +15,5 @@ enum class GroupStatus {
     /**
      * Группа частная
      */
-    PRIVATE
+    PRIVATE,
 }

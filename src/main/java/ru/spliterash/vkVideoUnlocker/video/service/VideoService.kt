@@ -7,6 +7,7 @@ import ru.spliterash.vkVideoUnlocker.group.WorkUserGroupService
 import ru.spliterash.vkVideoUnlocker.group.dto.GroupStatus
 import ru.spliterash.vkVideoUnlocker.user.client.vkModels.VkVideo
 import ru.spliterash.vkVideoUnlocker.user.client.vkModels.normalId
+import ru.spliterash.vkVideoUnlocker.video.dto.FullVideo
 import ru.spliterash.vkVideoUnlocker.video.entity.VideoEntity
 import ru.spliterash.vkVideoUnlocker.video.exceptions.*
 import ru.spliterash.vkVideoUnlocker.video.impl.VideoAccessorFactory
@@ -29,9 +30,9 @@ class VideoService(
 ) {
     private val downloadCache = Caffeine.newBuilder()
         .expireAfterWrite(Duration.ofMinutes(30))
-        .build<String, Deferred<VideoDownloadInfo>> { key ->
+        .build<String, Deferred<FullVideo>> { key ->
             CoroutineScope(Dispatchers.IO).async {
-                _getInfoForDownload(
+                getVideoWithTryingLockBehavior(
                     key
                 )
             }
@@ -51,16 +52,33 @@ class VideoService(
     }
 
     /**
-     * Получить ID разблокированного видоса
+     * Получить ID разблокированного видоса из longpoll
      */
-    suspend fun getUnlockedId(video: VkVideo): String {
-        baseCheckVideo(video)
+    suspend fun getUnlockedId(videoWithoutUrl: VkVideo): String {
+        return getUnlockedId(InfoVideoHolder(videoWithoutUrl))
+    }
 
-        val originalVideoId = video.normalId()
+    /**
+     * Получить ID разблокированного видоса из полного видео
+     * Не знаю где это будет вызываться, но пускай будет
+     */
+    suspend fun getUnlockedId(fullVideo: FullVideo): String {
+        return getUnlockedId(FullVideoHolder(fullVideo))
+    }
+
+    /**
+     * Получить ID разблокированного видоса из строки
+     */
+    suspend fun getUnlockedId(videoId: String): String {
+        return getUnlockedId(StringHolder(videoId))
+    }
+
+    private suspend fun getUnlockedId(holder: VideoHolder): String {
+        val originalVideoId = holder.id
         return unlocksInProgress.computeIfAbsent(originalVideoId) {
             ignoreExceptionScope.async {
                 try {
-                    _getUnlockedId(originalVideoId)
+                    _getUnlockedId(holder)
                 } finally {
                     @Suppress("DeferredResultUnused")
                     unlocksInProgress.remove(originalVideoId)
@@ -69,16 +87,33 @@ class VideoService(
         }.await()
     }
 
-    private suspend fun _getUnlockedId(originalVideoId: String): String {
+    private suspend fun _getUnlockedId(holder: VideoHolder): String {
+        val originalVideoId = holder.id
         val unlocked = videoRepository.findVideo(originalVideoId)
         if (unlocked != null)
             return unlocked.unlockedId
+        val video = holder.video()
+        baseCheckVideo(video)
+
         val locked = isLocked(originalVideoId)
         if (!locked)
             throw VideoOpenException()
+        val availableVideo = holder.fullVideo()
+
+        return reUploadAndSave(availableVideo)
+    }
+
+    private suspend fun reUploadAndSave(fullVideo: FullVideo): String {
+        val originalVideoId = fullVideo.video.normalId()
+        val videoAccessor = fullVideo.toAccessor()
+        val groupStatus = fullVideo.status()
 
 
-        val reUploadedId = reUpload(originalVideoId)
+        val reUploadedId = workUser.videos.upload(
+            groupUser.id, originalVideoId,
+            groupStatus != GroupStatus.PUBLIC,
+            videoAccessor
+        )
 
         val entity = VideoEntity(originalVideoId, reUploadedId)
         videoRepository.save(entity)
@@ -86,30 +121,23 @@ class VideoService(
         return reUploadedId
     }
 
-    /**
-     * Перезалить видео в группу
-     */
-    private suspend fun reUpload(originalVideoId: String): String {
-        val info = _getInfoForDownload(originalVideoId)
-
-        return workUser.videos.upload(
-            groupUser.id, originalVideoId,
-            info.groupStatus != GroupStatus.PUBLIC,
-            info.accessor
-        )
+    suspend fun getInfoForDownload(videoId: String): FullVideo {
+        return downloadCache.get(videoId).await()
     }
 
     /**
-     * Получить объект для скачивания видео
+     * Я не умею называть методы. Попробовать получить видео, и в случае если оно недоступно, вступить в группу
      */
-    private suspend fun _getInfoForDownload(videoId: String): VideoDownloadInfo {
+    suspend fun getVideoWithTryingLockBehavior(videoId: String): FullVideo {
         // Прежде всего попробуем просто его получить
         try {
             val video = workUser.videos.getVideo(videoId)
-            return VideoDownloadInfo(
-                videoAccessorFactory.create(video),
-                GroupStatus.PUBLIC
-            ) // Если мы так просто получили линк, значит видос открытый
+            return FullVideo(
+                video,
+                null,
+                videoAccessorFactory,
+                workUserGroupService,
+            )
         } catch (_: VideoLockedException) {
         }
 
@@ -120,13 +148,8 @@ class VideoService(
 
         val groupId = -ownerId
         val status = workUserGroupService.joinGroup(groupId)
-        val video = workUser.videos.getVideo(videoId)
 
-        return VideoDownloadInfo(videoAccessorFactory.create(video), status)
-    }
-
-    suspend fun getInfoForDownload(videoId: String): VideoDownloadInfo {
-        return downloadCache.get(videoId).await()
+        return FullVideo(workUser.videos.getVideo(videoId), status, videoAccessorFactory, workUserGroupService)
     }
 
     suspend fun isLocked(videoId: String): Boolean {
@@ -136,5 +159,53 @@ class VideoService(
         } catch (ex: VideoLockedException) {
             true
         }
+    }
+
+    private interface VideoHolder {
+        val id: String
+
+        /**
+         * Видео без ссылок на скачивание, чисто инфа
+         */
+        suspend fun video(): VkVideo
+        suspend fun fullVideo(): FullVideo
+    }
+
+    private inner class StringHolder(override val id: String) : VideoHolder {
+        private lateinit var full: FullVideo
+        private suspend fun check() {
+            if (!this::full.isInitialized)
+                full = getVideoWithTryingLockBehavior(id)
+        }
+
+        override suspend fun video(): VkVideo {
+            check()
+            return full.video
+        }
+
+        override suspend fun fullVideo(): FullVideo {
+            check()
+            return full
+        }
+    }
+
+    private inner class InfoVideoHolder(val video: VkVideo) : VideoHolder {
+        override val id: String
+            get() = video.normalId()
+
+        override suspend fun video() = video
+
+        override suspend fun fullVideo(): FullVideo {
+            return getVideoWithTryingLockBehavior(id)
+        }
+    }
+
+    private class FullVideoHolder(val video: FullVideo) : VideoHolder {
+        override val id: String
+            get() = video.video.normalId()
+
+        override suspend fun video() = video.video
+
+        override suspend fun fullVideo() = video
     }
 }
