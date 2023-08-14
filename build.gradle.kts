@@ -13,7 +13,7 @@ repositories {
     mavenCentral()
 }
 application {
-    mainClass.set("ru.spliterash.vkVideoUnlocker.VkVideoUnlockerMainKt")
+    mainClass.set("ru.spliterash.vkVideoUnlocker.application.VkUnlockerApplication")
 }
 java {
     sourceCompatibility = JavaVersion.toVersion("17")

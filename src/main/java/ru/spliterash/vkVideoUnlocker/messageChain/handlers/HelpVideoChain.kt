@@ -2,6 +2,7 @@ package ru.spliterash.vkVideoUnlocker.messageChain.handlers
 
 import jakarta.inject.Singleton
 import ru.spliterash.vkVideoUnlocker.longpoll.message.RootMessage
+import ru.spliterash.vkVideoUnlocker.longpoll.message.isGroupChat
 import ru.spliterash.vkVideoUnlocker.longpoll.message.reply
 import ru.spliterash.vkVideoUnlocker.messageChain.ActivationMessageHandler
 import ru.spliterash.vkVideoUnlocker.vk.actor.GroupUser
@@ -20,6 +21,9 @@ class HelpVideoChain(
     "как тобой пользоваться"
 ) {
     override suspend fun handleAfterCheck(message: RootMessage) {
+        if (message.isGroupChat())
+            return
+
         message.reply(
             client,
             "Привет. Чтобы разблокировать видео, просто перешли мне что то, что его содержит. " +
