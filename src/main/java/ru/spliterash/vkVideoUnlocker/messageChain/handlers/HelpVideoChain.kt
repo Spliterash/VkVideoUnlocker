@@ -13,6 +13,8 @@ class HelpVideoChain(
     @GroupUser private val client: VkApi
 ) : ActivationMessageHandler(
     "помощь",
+    "начать",
+    "/начать",
     "help",
     "старт",
     "start",
