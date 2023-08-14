@@ -20,21 +20,19 @@ class DefaultVideoChain(
     private val utils: MessageUtils,
     private val videoService: VideoService,
 ) : MessageHandler {
-    override suspend fun handle(message: RootMessage): Boolean {
-        val video = utils.scanForAttachment(message) { it.video } ?: return false
+    override suspend fun handle(message: RootMessage): Boolean = coroutineScope {
+        val video = utils.scanForAttachment(message) { it.video } ?: return@coroutineScope false
 
-        val notifyJob = coroutineScope {
-            launch {
-                delay(3000)
-                message.reply(client, "Видео обрабатывается дольше чем обычно, я не завис")
-                delay(10000)
-                message.reply(client, "Да да, всё ещё обрабатывается, потерпи чуть чуть")
-                delay(20000)
-                message.reply(client, "Я не знаю что ты туда положил, но оно всё ещё обрабатывается")
-                while (true) {
-                    delay(30000)
-                    message.reply(client, "Всё ещё в процессе")
-                }
+        val notifyJob = launch {
+            delay(3000)
+            message.reply(client, "Видео обрабатывается дольше чем обычно, я не завис")
+            delay(10000)
+            message.reply(client, "Да да, всё ещё обрабатывается, потерпи чуть чуть")
+            delay(20000)
+            message.reply(client, "Я не знаю что ты туда положил, но оно всё ещё обрабатывается")
+            while (true) {
+                delay(30000)
+                message.reply(client, "Всё ещё в процессе")
             }
         }
 
@@ -44,14 +42,14 @@ class DefaultVideoChain(
             if (message.isPersonalChat())
                 throw ex
 
-            return true
+            return@coroutineScope true
         } finally {
             notifyJob.cancel()
         }
 
         message.reply(client, attachments = "video$unlockedId")
 
-        return true
+        return@coroutineScope true
     }
 
     override val priority: Int
