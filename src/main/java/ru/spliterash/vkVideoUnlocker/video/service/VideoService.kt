@@ -16,6 +16,7 @@ import ru.spliterash.vkVideoUnlocker.vk.actor.types.PokeUser
 import ru.spliterash.vkVideoUnlocker.vk.actor.types.WorkUser
 import ru.spliterash.vkVideoUnlocker.vk.api.VkApi
 import java.time.Duration
+import java.util.*
 
 @Singleton
 class VideoService(
@@ -35,7 +36,7 @@ class VideoService(
                 )
             }
         }
-    private val unlocksInProgress = hashMapOf<String, Deferred<String>>()
+    private val unlocksInProgress = Collections.synchronizedMap(hashMapOf<String, Deferred<String>>())
     private val ignoreExceptionScope = CoroutineScope(
         SupervisorJob()
     )
@@ -58,7 +59,12 @@ class VideoService(
         val originalVideoId = video.normalId()
         return unlocksInProgress.computeIfAbsent(originalVideoId) {
             ignoreExceptionScope.async {
-                _getUnlockedId(originalVideoId)
+                try {
+                    _getUnlockedId(originalVideoId)
+                } finally {
+                    @Suppress("DeferredResultUnused")
+                    unlocksInProgress.remove(originalVideoId)
+                }
             }
         }.await()
     }

@@ -1,6 +1,9 @@
 package ru.spliterash.vkVideoUnlocker.messageChain.handlers
 
 import jakarta.inject.Singleton
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import ru.spliterash.vkVideoUnlocker.common.exceptions.VkUnlockerException
 import ru.spliterash.vkVideoUnlocker.longpoll.message.RootMessage
 import ru.spliterash.vkVideoUnlocker.longpoll.message.isPersonalChat
@@ -20,6 +23,21 @@ class DefaultVideoChain(
     override suspend fun handle(message: RootMessage): Boolean {
         val video = utils.scanForAttachment(message) { it.video } ?: return false
 
+        val notifyJob = coroutineScope {
+            launch {
+                delay(3000)
+                message.reply(client, "Видео обрабатывается дольше чем обычно, я не завис")
+                delay(10000)
+                message.reply(client, "Да да, всё ещё обрабатывается, потерпи чуть чуть")
+                delay(20000)
+                message.reply(client, "Я не знаю что ты туда положил, но оно всё ещё обрабатывается")
+                while (true) {
+                    delay(30000)
+                    message.reply(client, "Всё ещё в процессе")
+                }
+            }
+        }
+
         val unlockedId = try {
             videoService.getUnlockedId(video)
         } catch (ex: VkUnlockerException) {
@@ -27,7 +45,10 @@ class DefaultVideoChain(
                 throw ex
 
             return true
+        } finally {
+            notifyJob.cancel()
         }
+
         message.reply(client, attachments = "video$unlockedId")
 
         return true
