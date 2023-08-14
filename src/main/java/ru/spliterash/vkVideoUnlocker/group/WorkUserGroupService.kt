@@ -62,8 +62,14 @@ class WorkUserGroupService(
                         throw VideoGroupPrivateException()
                 }
 
-                GroupStatus.PUBLIC -> Unit
+                GroupStatus.PUBLIC -> {
+                    if (actualInfo.memberStatus == MemberStatus.NO) {
+                        user.groups.join(groupId)
+                        actualInfo.memberStatus = MemberStatus.MEMBER
+                    }
+                }
             }
+            lock.withLock { groups[groupId] = actualInfo }
             return actualInfo.groupStatus
         } finally {
             lock.withLock { groups[groupId] = actualInfo }
