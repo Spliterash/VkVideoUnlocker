@@ -1,17 +1,25 @@
 micronaut:
   application:
     name: vk-unlocker
-  datasources:
-    default:
-      url: jdbc:mariadb://localhost:3306/your_database_name
-      driverClassName: org.mariadb.jdbc.Driver
-      username: your_username
-      password: your_password
+
+# Тут думаю всё понятно.
+datasources:
+  default:
+    url: jdbc:mariadb://localhost:3306/your_database_name
+    driverClassName: org.mariadb.jdbc.Driver
+    username: your_username
+    password: your_password
 vk-unlocker:
+  # IP адрес или домен где это всё запущенно
+  domain: https://localhost:8080
   group:
+    # ID группы
     id: group_id
+    # Token группы
     token: group_token
+  # Пользователь для подписки и скачивания
   work-user:
     token: action_user_token
+  # Пользователь для "тыканья" видосов на наличие блокировки
   poke-user:
     token: poke_user_token
