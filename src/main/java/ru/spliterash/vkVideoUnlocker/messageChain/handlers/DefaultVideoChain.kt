@@ -5,9 +5,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import ru.spliterash.vkVideoUnlocker.common.exceptions.VkUnlockerException
-import ru.spliterash.vkVideoUnlocker.longpoll.message.RootMessage
-import ru.spliterash.vkVideoUnlocker.longpoll.message.isPersonalChat
-import ru.spliterash.vkVideoUnlocker.longpoll.message.reply
+import ru.spliterash.vkVideoUnlocker.longpoll.message.*
 import ru.spliterash.vkVideoUnlocker.message.utils.MessageUtils
 import ru.spliterash.vkVideoUnlocker.messageChain.MessageHandler
 import ru.spliterash.vkVideoUnlocker.video.service.VideoService
@@ -46,8 +44,12 @@ class DefaultVideoChain(
         } finally {
             notifyJob.cancel()
         }
+        val text = if (message.isGroupChat() && message.hasPing(client))
+            "Готово. Если мне выдать доступ ко всей переписке, тогда меня не надо будет пинговать, " +
+                    "и я смогу разблокировать видосы автоматически, сразу как они прилетают в беседу"
+        else null
 
-        message.reply(client, attachments = "video$unlockedId")
+        message.reply(client, text, "video$unlockedId")
 
         return@coroutineScope true
     }
