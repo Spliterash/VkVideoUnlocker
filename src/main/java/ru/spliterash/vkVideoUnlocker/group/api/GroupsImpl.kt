@@ -7,7 +7,10 @@ import okhttp3.OkHttpClient
 import okhttp3.executeAsync
 import org.slf4j.LoggerFactory
 import ru.spliterash.vkVideoUnlocker.group.dto.GroupInfo
+import ru.spliterash.vkVideoUnlocker.group.dto.GroupStatus
+import ru.spliterash.vkVideoUnlocker.group.dto.MemberStatus
 import ru.spliterash.vkVideoUnlocker.group.vkModels.LongPollServerResponse
+import ru.spliterash.vkVideoUnlocker.group.vkModels.VkGroupGetByIdResponse
 import ru.spliterash.vkVideoUnlocker.vk.VkHelper
 import ru.spliterash.vkVideoUnlocker.vk.actor.types.Actor
 import ru.spliterash.vkVideoUnlocker.vk.vkModels.VkConst
@@ -25,11 +28,55 @@ class GroupsImpl(
     }
 
     override suspend fun status(groupId: Int): GroupInfo {
-        TODO("Not yet implemented")
+        val request = VkConst.requestBuilder()
+            .url(
+                VkConst.urlBuilder("groups.getById") // Hidden method, taken from mobile app
+                    .addQueryParameter("group_id", groupId.toString())
+                    .addQueryParameter("fields", "member_status,is_closed")
+                    .build()
+
+            )
+            .build()
+
+        val response = client
+            .newCall(request)
+            .executeAsync()
+        val (mapped) = vkHelper.readResponse(response, VkGroupGetByIdResponse::class.java)
+        val status = when (mapped.isClosed) {
+            VkGroupGetByIdResponse.ClosedStatus.OPEN -> GroupStatus.PUBLIC
+            VkGroupGetByIdResponse.ClosedStatus.CLOSED -> GroupStatus.CLOSE
+            VkGroupGetByIdResponse.ClosedStatus.PRIVATE -> GroupStatus.PRIVATE
+        }
+        val member = when (mapped.memberStatus) {
+            VkGroupGetByIdResponse.MemberStatus.NOT_MEMBER -> MemberStatus.NO
+            VkGroupGetByIdResponse.MemberStatus.MEMBER -> MemberStatus.MEMBER
+            VkGroupGetByIdResponse.MemberStatus.DO_NOT_SURE -> MemberStatus.MEMBER
+            VkGroupGetByIdResponse.MemberStatus.DECLINED_INVITE -> MemberStatus.NO
+            VkGroupGetByIdResponse.MemberStatus.REQUEST_SEND -> MemberStatus.REQUEST_SEND
+            VkGroupGetByIdResponse.MemberStatus.INVITED -> MemberStatus.NO
+        }
+
+        return GroupInfo(
+            status,
+            member
+        )
     }
 
     override suspend fun join(groupId: Int) {
-        TODO("Not yet implemented")
+        val request = VkConst.requestBuilder()
+            .url(
+                VkConst.urlBuilder("groups.join")
+                    .addQueryParameter("group_id", groupId.toString())
+                    .build()
+
+            )
+            .build()
+
+        val response = client
+            .newCall(request)
+            .executeAsync()
+        // Обработка ошибок если будут
+        vkHelper.readResponse(response, Void::class.java)
     }
 
     override suspend fun getLongPollServer(): LongPollServerResponse {

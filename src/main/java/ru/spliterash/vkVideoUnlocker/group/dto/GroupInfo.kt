@@ -1,6 +1,6 @@
 package ru.spliterash.vkVideoUnlocker.group.dto
 
-class GroupInfo(
+data class GroupInfo(
     val groupStatus: GroupStatus,
     var memberStatus: MemberStatus
 )
