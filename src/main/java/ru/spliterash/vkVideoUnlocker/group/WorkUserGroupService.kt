@@ -50,6 +50,7 @@ class WorkUserGroupService(
                         MemberStatus.NO -> {
                             user.groups.join(groupId)
                             actualInfo.memberStatus = MemberStatus.REQUEST_SEND
+                            throw VideoGroupRequestSendException()
                         }
 
                         MemberStatus.REQUEST_SEND -> throw VideoGroupRequestSendException()

@@ -18,7 +18,7 @@ class FullVideo(
     private var accessor: VideoAccessor? = null
 
     suspend fun status(): GroupStatus {
-        if (video.ownerId < 0)
+        if (video.ownerId > 0)
             return GroupStatus.PUBLIC // Пользователь
 
         return status ?: groupService.joinGroup(-video.ownerId).also {
