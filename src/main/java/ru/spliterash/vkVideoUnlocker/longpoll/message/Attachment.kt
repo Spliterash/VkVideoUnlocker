@@ -1,5 +1,6 @@
 package ru.spliterash.vkVideoUnlocker.longpoll.message
 
+import com.fasterxml.jackson.annotation.JsonEnumDefaultValue
 import com.fasterxml.jackson.annotation.JsonProperty
 import ru.spliterash.vkVideoUnlocker.longpoll.message.attachments.SomethingWithAttachments
 import ru.spliterash.vkVideoUnlocker.video.vkModels.VkVideo
@@ -19,5 +20,8 @@ data class Attachment(
 
         @JsonProperty("wall_reply")
         WALL_REPLY,
+
+        @JsonEnumDefaultValue
+        UNKNOWN
     }
 }
