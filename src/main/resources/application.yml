@@ -1,7 +1,9 @@
 micronaut:
   application:
     name: vk-unlocker
-
+jackson:
+  deserialization:
+    READ_UNKNOWN_ENUM_VALUES_USING_DEFAULT_VALUE: true
 # Тут думаю всё понятно.
 datasources:
   default:
