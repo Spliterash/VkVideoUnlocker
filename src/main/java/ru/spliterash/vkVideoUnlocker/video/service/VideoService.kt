@@ -138,7 +138,13 @@ class VideoService(
         val groupId = -ownerId
         val status = workUserGroupService.joinGroup(groupId)
 
-        return FullVideo(workUser.videos.getVideo(videoId), status, videoAccessorFactory, workUserGroupService)
+        val video = try {
+            workUser.videos.getVideo(videoId)
+        } catch (locked: VideoLockedException) {
+            // Вк по какой то непонятной причине говорит что видео доступно только подписчикам, если оно приватное
+            throw VideoPrivateException()
+        }
+        return FullVideo(video, status, videoAccessorFactory, workUserGroupService)
     }
 
     suspend fun isLocked(videoId: String): Boolean {

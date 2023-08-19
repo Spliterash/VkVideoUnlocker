@@ -18,6 +18,7 @@ import ru.spliterash.vkVideoUnlocker.video.vkModels.VkVideo
 import ru.spliterash.vkVideoUnlocker.video.vkModels.VkVideoGetResponse
 import ru.spliterash.vkVideoUnlocker.video.vkModels.VkVideoUploadResponse
 import ru.spliterash.vkVideoUnlocker.vk.VkHelper
+import ru.spliterash.vkVideoUnlocker.vk.readResponse
 import ru.spliterash.vkVideoUnlocker.vk.vkModels.VkConst
 
 private val log = LogFactory.getLog(VideosImpl::class.java)
@@ -30,7 +31,7 @@ class VideosImpl(
 ) : Videos {
 
     override suspend fun getVideo(id: String): VkVideo {
-        val request = VkConst.requestBuilder()
+        val mapped = VkConst.requestBuilder()
             .get()
             .addHeader(
                 "user-agent",
@@ -44,12 +45,9 @@ class VideosImpl(
                     .build()
             )
             .build()
+            .executeAsync(client)
+            .readResponse(helper, VkVideoGetResponse::class.java)
 
-        val response = client
-            .newCall(request)
-            .executeAsync()
-
-        val mapped = helper.readResponse(response, VkVideoGetResponse::class.java)
         val video = mapped.items.firstOrNull() ?: throw VideoNotFoundException()
         if (video.contentRestricted)
             throw VideoLockedException()
