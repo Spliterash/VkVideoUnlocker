@@ -55,7 +55,7 @@ class VideosImpl(
         return video
     }
     override suspend fun upload(groupId: Int, name: String, private: Boolean, accessor: VideoAccessor): String {
-        val request = VkConst.requestBuilder()
+        val url = VkConst.requestBuilder()
             .get()
             .url(
                 VkConst.urlBuilder("video.save")
@@ -65,13 +65,10 @@ class VideosImpl(
                     .build()
             )
             .build()
+            .executeAsync(client)
+            .readResponse(helper, VkSaveResponse::class.java)
+            .uploadUrl
 
-
-        val uploadUrlResponse = client
-            .newCall(request)
-            .executeAsync()
-
-        val url = helper.readResponse(uploadUrlResponse, VkSaveResponse::class.java).uploadUrl
         val info = accessor.load()
 
         val response = Request.Builder()

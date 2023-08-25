@@ -1,6 +1,7 @@
 package ru.spliterash.vkVideoUnlocker.video.vkModels
 
 import com.fasterxml.jackson.annotation.JsonProperty
+import ru.spliterash.vkVideoUnlocker.longpoll.message.attachments.AttachmentContent
 import ru.spliterash.vkVideoUnlocker.video.exceptions.VideoEmptyUrlException
 import java.net.URL
 
@@ -56,7 +57,7 @@ data class VkVideo(
     val platform: String?,
     @JsonProperty("files")
     val files: VideoFiles?
-) {
+) : AttachmentContent {
     @Throws(VideoEmptyUrlException::class)
     fun extractUrl(): URL = files?.run {
         mp41080

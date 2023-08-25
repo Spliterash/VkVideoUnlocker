@@ -19,7 +19,7 @@ class DefaultVideoChain(
     private val videoService: VideoService,
 ) : MessageHandler {
     override suspend fun handle(message: RootMessage): Boolean = coroutineScope {
-        val video = utils.scanForVideo(message) ?: return@coroutineScope false
+        val video = utils.scanForVideoContent(message) ?: return@coroutineScope false
 
         val notifyJob = launch {
             delay(3000)

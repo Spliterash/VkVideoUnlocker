@@ -4,8 +4,12 @@ import jakarta.inject.Singleton
 import ru.spliterash.vkVideoUnlocker.longpoll.message.Attachment
 import ru.spliterash.vkVideoUnlocker.longpoll.message.RootMessage
 import ru.spliterash.vkVideoUnlocker.longpoll.message.attachments.AttachmentContainer
+import ru.spliterash.vkVideoUnlocker.longpoll.message.attachments.AttachmentContent
+import ru.spliterash.vkVideoUnlocker.message.utils.MessageUtils.Checker
+import ru.spliterash.vkVideoUnlocker.story.vkModels.VkStory
 import ru.spliterash.vkVideoUnlocker.video.service.VideoHolder
 import ru.spliterash.vkVideoUnlocker.video.service.VideoService
+import ru.spliterash.vkVideoUnlocker.video.vkModels.VkVideo
 import ru.spliterash.vkVideoUnlocker.vk.actor.types.WorkUser
 import ru.spliterash.vkVideoUnlocker.vk.api.VkApi
 import java.util.regex.Pattern
@@ -16,10 +20,15 @@ class MessageUtils(
     private val videoService: VideoService,
 ) {
     private val vkUrlPattern = Pattern.compile("https://vk\\.com/(?<type>video|wall)(?<owner>-?\\d+)_(?<id>\\d+)")
-    suspend fun scanForVideo(root: RootMessage): VideoHolder? {
-        val infoVideo = scanForAttachment(root) { it.video }
-        if (infoVideo != null)
-            return videoService.wrap(infoVideo)
+    suspend fun scanForVideoContent(root: RootMessage): VideoHolder? {
+        val attachmentContent = scanForAttachment(root, listOf(Checker { it.video }, Checker { it.story }))
+        if (attachmentContent != null) {
+            return when (attachmentContent) {
+                is VkVideo -> videoService.wrap(attachmentContent, root)
+                is VkStory -> videoService.wrap(attachmentContent, root)
+                else -> throw IllegalArgumentException("Impossible exception")
+            }
+        }
         val text = root.text?.trim()
         if (text.isNullOrEmpty()) return null
 
@@ -28,12 +37,12 @@ class MessageUtils(
 
         val id = matcher.group("owner") + "_" + matcher.group("id")
         return when (matcher.group("type")) {
-            "video" -> videoService.wrap(id)
+            "video" -> videoService.wrap(id, root)
             "wall" -> {
                 val wall = user.walls.getById(id)
                 val video = scanForAttachment(wall) { it.video }
                 if (video != null)
-                    videoService.wrap(video)
+                    videoService.wrap(video, root)
                 else
                     null
             }
@@ -42,27 +51,33 @@ class MessageUtils(
         }
     }
 
+    fun <T : AttachmentContent> scanForAttachment(root: AttachmentContainer, checker: Checker<T>): T? {
+        return scanForAttachment(root, listOf(checker)) as T?
+    }
+
     @Suppress("MemberVisibilityCanBePrivate")
-    fun <T> scanForAttachment(root: AttachmentContainer, checker: Checker<T>): T? {
+    fun scanForAttachment(root: AttachmentContainer, checkers: List<Checker<*>>): AttachmentContent? {
         for (attachment in root.attachments()) {
-            val needle = checker.check(attachment)
-            if (needle != null)
-                return needle
+            for (checker in checkers) {
+                val needle = checker.check(attachment)
+                if (needle != null)
+                    return needle
+            }
 
             if (attachment.wall != null) {
-                val scanResult = scanForAttachment(attachment.wall, checker)
+                val scanResult = scanForAttachment(attachment.wall, checkers)
                 if (scanResult != null)
                     return scanResult
             }
 
             if (attachment.wallReply != null) {
-                val scanResult = scanForAttachment(attachment.wallReply, checker)
+                val scanResult = scanForAttachment(attachment.wallReply, checkers)
                 if (scanResult != null)
                     return scanResult
             }
         }
         for (somethingWithAttachments in root.containers()) {
-            val result = scanForAttachment(somethingWithAttachments, checker)
+            val result = scanForAttachment(somethingWithAttachments, checkers)
             if (result != null)
                 return result
         }
@@ -71,7 +86,7 @@ class MessageUtils(
     }
 
 
-    fun interface Checker<T> {
+    fun interface Checker<T : AttachmentContent> {
         fun check(obj: Attachment): T?
     }
 }

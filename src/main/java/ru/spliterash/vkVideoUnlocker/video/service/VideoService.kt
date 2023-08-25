@@ -5,6 +5,11 @@ import jakarta.inject.Singleton
 import kotlinx.coroutines.*
 import ru.spliterash.vkVideoUnlocker.group.WorkUserGroupService
 import ru.spliterash.vkVideoUnlocker.group.dto.GroupStatus
+import ru.spliterash.vkVideoUnlocker.longpoll.message.RootMessage
+import ru.spliterash.vkVideoUnlocker.story.exceptions.StoryExpiredException
+import ru.spliterash.vkVideoUnlocker.story.exceptions.StoryIsPrivateException
+import ru.spliterash.vkVideoUnlocker.story.exceptions.StoryNotVideoException
+import ru.spliterash.vkVideoUnlocker.story.vkModels.VkStory
 import ru.spliterash.vkVideoUnlocker.video.dto.FullVideo
 import ru.spliterash.vkVideoUnlocker.video.entity.VideoEntity
 import ru.spliterash.vkVideoUnlocker.video.exceptions.*
@@ -53,12 +58,23 @@ class VideoService(
             throw VideoTooLongException()
     }
 
-    fun wrap(videoId: String): VideoHolder {
-        return StringHolder(videoId)
+    fun wrap(videoId: String, root: RootMessage): VideoHolder {
+        return StringHolder(videoId, root)
     }
 
-    fun wrap(video: VkVideo): VideoHolder {
-        return InfoVideoHolder(video)
+    fun wrap(video: VkVideo, root: RootMessage): VideoHolder {
+        return InfoVideoHolder(video, root)
+    }
+
+    fun wrap(story: VkStory, root: RootMessage): VideoHolder {
+        if (story.isExpired)
+            throw StoryExpiredException()
+        if (!story.canSee!!)
+            throw StoryIsPrivateException()
+        if (story.type != VkStory.Type.VIDEO)
+            throw StoryNotVideoException()
+
+        return StoryHolder(story, root)
     }
 
 
@@ -84,9 +100,12 @@ class VideoService(
         val video = holder.video()
         baseCheckVideo(video)
 
-        val locked = isLocked(originalVideoId)
-        if (!locked)
-            throw VideoOpenException()
+        if (holder.isForce()) {
+            val locked = isLocked(originalVideoId)
+            if (!locked)
+                throw VideoOpenException()
+        }
+
         val availableVideo = holder.fullVideo()
 
         return reUploadAndSave(availableVideo)
@@ -156,7 +175,10 @@ class VideoService(
         }
     }
 
-    private inner class StringHolder(override val id: String) : VideoHolder {
+    private inner class StringHolder(
+        override val id: String,
+        override val root: RootMessage
+    ) : VideoHolder {
         private lateinit var full: FullVideo
         private suspend fun check() {
             if (!this::full.isInitialized)
@@ -174,7 +196,7 @@ class VideoService(
         }
     }
 
-    private inner class InfoVideoHolder(val video: VkVideo) : VideoHolder {
+    private inner class InfoVideoHolder(val video: VkVideo, override val root: RootMessage) : VideoHolder {
         private lateinit var full: FullVideo
         override val id: String
             get() = video.normalId()
@@ -187,5 +209,26 @@ class VideoService(
 
             return full
         }
+    }
+
+    private inner class StoryHolder(
+        val story: VkStory,
+        override val root: RootMessage
+    ) :
+        VideoHolder {
+        override val id: String
+            get() = story.video!!.normalId()
+
+        override suspend fun video() = story.video!!
+
+        // LongPoll присылает нам сторисы с полным видео
+        override suspend fun fullVideo() = FullVideo(
+            story.video!!,
+            null,
+            videoAccessorFactory,
+            workUserGroupService
+        )
+
+        override fun isForce() = true
     }
 }

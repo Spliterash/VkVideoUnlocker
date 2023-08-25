@@ -18,6 +18,7 @@ import ru.spliterash.vkVideoUnlocker.longpoll.message.reply
 import ru.spliterash.vkVideoUnlocker.longpoll.vkModels.LongPollResponse
 import ru.spliterash.vkVideoUnlocker.vk.actor.GroupUser
 import ru.spliterash.vkVideoUnlocker.vk.api.VkApi
+import ru.spliterash.vkVideoUnlocker.vk.exceptions.VkApiException
 import java.time.Duration
 
 @Singleton
@@ -71,7 +72,10 @@ class LongPollService(
                         supervisorScope.launch {
                             try {
                                 messageChainService.proceedMessage(message)
+
                             } catch (ex: VkUnlockerException) {
+                                if (ex is VkApiException)
+                                    ex.printStackTrace()
                                 val info = ex.messageForUser()
                                 message.reply(vkApi, info)
                             } catch (ex: Exception) {
