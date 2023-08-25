@@ -100,7 +100,7 @@ class VideoService(
         val video = holder.video()
         baseCheckVideo(video)
 
-        if (holder.isForce()) {
+        if (!holder.isForce()) {
             val locked = isLocked(originalVideoId)
             if (!locked)
                 throw VideoOpenException()
