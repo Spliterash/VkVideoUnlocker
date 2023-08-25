@@ -7,7 +7,7 @@ import ru.spliterash.vkVideoUnlocker.group.WorkUserGroupService
 import ru.spliterash.vkVideoUnlocker.group.dto.GroupStatus
 import ru.spliterash.vkVideoUnlocker.longpoll.message.RootMessage
 import ru.spliterash.vkVideoUnlocker.story.exceptions.StoryExpiredException
-import ru.spliterash.vkVideoUnlocker.story.exceptions.StoryIsPrivateException
+import ru.spliterash.vkVideoUnlocker.story.exceptions.CantSeeStoryException
 import ru.spliterash.vkVideoUnlocker.story.exceptions.StoryNotVideoException
 import ru.spliterash.vkVideoUnlocker.story.vkModels.VkStory
 import ru.spliterash.vkVideoUnlocker.video.dto.FullVideo
@@ -70,7 +70,7 @@ class VideoService(
         if (story.isExpired)
             throw StoryExpiredException()
         if (!story.canSee!!)
-            throw StoryIsPrivateException()
+            throw CantSeeStoryException()
         if (story.type != VkStory.Type.VIDEO)
             throw StoryNotVideoException()
 

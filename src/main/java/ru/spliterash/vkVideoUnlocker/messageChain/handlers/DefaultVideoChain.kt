@@ -19,7 +19,12 @@ class DefaultVideoChain(
     private val videoService: VideoService,
 ) : MessageHandler {
     override suspend fun handle(message: RootMessage): Boolean = coroutineScope {
-        val video = utils.scanForVideoContent(message) ?: return@coroutineScope false
+        val video = try {
+            utils.scanForVideoContent(message)
+        } catch (ex: VkUnlockerException) {
+            handleException(ex, message)
+            return@coroutineScope true
+        } ?: return@coroutineScope false
 
         val notifyJob = launch {
             delay(3000)
@@ -34,12 +39,10 @@ class DefaultVideoChain(
             }
         }
 
-        val unlockedId = try {
+        val unlockedId: String = try {
             videoService.getUnlockedId(video)
         } catch (ex: VkUnlockerException) {
-            if (message.isPersonalChat())
-                throw ex
-
+            handleException(ex, message)
             return@coroutineScope true
         } finally {
             notifyJob.cancel()
@@ -52,6 +55,11 @@ class DefaultVideoChain(
         message.reply(client, text, "video$unlockedId")
 
         return@coroutineScope true
+    }
+
+    private fun handleException(ex: VkUnlockerException, message: RootMessage) {
+        if (message.isPersonalChat())
+            throw ex
     }
 
     override val priority: Int
