@@ -9,7 +9,6 @@ import ru.spliterash.vkVideoUnlocker.longpoll.message.*
 import ru.spliterash.vkVideoUnlocker.message.utils.MessageUtils
 import ru.spliterash.vkVideoUnlocker.messageChain.MessageHandler
 import ru.spliterash.vkVideoUnlocker.video.service.VideoReUploadService
-import ru.spliterash.vkVideoUnlocker.video.service.VideoService
 import ru.spliterash.vkVideoUnlocker.vk.actor.GroupUser
 import ru.spliterash.vkVideoUnlocker.vk.api.VkApi
 

@@ -2,7 +2,6 @@ package ru.spliterash.vkVideoUnlocker.video.service
 
 import jakarta.inject.Singleton
 import ru.spliterash.vkVideoUnlocker.group.WorkUserGroupService
-import ru.spliterash.vkVideoUnlocker.longpoll.message.RootMessage
 import ru.spliterash.vkVideoUnlocker.story.exceptions.CantSeeStoryException
 import ru.spliterash.vkVideoUnlocker.story.exceptions.StoryExpiredException
 import ru.spliterash.vkVideoUnlocker.story.exceptions.StoryNotVideoException
@@ -10,15 +9,20 @@ import ru.spliterash.vkVideoUnlocker.story.vkModels.VkStory
 import ru.spliterash.vkVideoUnlocker.video.accessor.VideoAccessorFactory
 import ru.spliterash.vkVideoUnlocker.video.dto.FullVideo
 import ru.spliterash.vkVideoUnlocker.video.exceptions.*
+import ru.spliterash.vkVideoUnlocker.video.holder.StoryHolder
+import ru.spliterash.vkVideoUnlocker.video.holder.VideoContentHolder
 import ru.spliterash.vkVideoUnlocker.video.holder.VideoHolder
 import ru.spliterash.vkVideoUnlocker.video.vkModels.VkVideo
 import ru.spliterash.vkVideoUnlocker.video.vkModels.normalId
+import ru.spliterash.vkVideoUnlocker.vk.AttachmentScanner
+import ru.spliterash.vkVideoUnlocker.vk.VkConst
 import ru.spliterash.vkVideoUnlocker.vk.actor.types.PokeUser
 import ru.spliterash.vkVideoUnlocker.vk.actor.types.WorkUser
 import ru.spliterash.vkVideoUnlocker.vk.api.VkApi
 
 @Singleton
 class VideoService(
+    private val attachmentScanner: AttachmentScanner,
     private val workUserGroupService: WorkUserGroupService,
     private val videoAccessorFactory: VideoAccessorFactory,
     @WorkUser private val workUser: VkApi,
@@ -36,25 +40,54 @@ class VideoService(
             throw VideoTooLongException()
     }
 
-    fun wrap(videoId: String, root: RootMessage): VideoHolder {
-        return StringVideoHolder(videoId, root)
+    fun wrapVideoId(videoId: String): VideoContentHolder {
+        return StringVideoHolder(videoId)
     }
 
-    fun wrap(video: VkVideo, root: RootMessage): VideoHolder {
+    fun wrapStoryId(storyId: String): VideoContentHolder {
+        return StringStoryHolder(storyId)
+    }
+
+    suspend fun wrapAttachmentId(attachmentId: String): VideoContentHolder? {
+        val matcher = VkConst.VK_ATTACHMENT_PATTERN.matcher(attachmentId)
+        if (!matcher.find())
+            throw IllegalArgumentException("Attachment id has wrong format")
+
+        val type = matcher.group("type")
+        val ownerId = matcher.group("owner")
+        val id = matcher.group("id")
+        val normalId = "${ownerId}_${id}"
+
+        return when (type) {
+            "video" -> wrapVideoId(normalId)
+            "story" -> wrapStoryId(normalId)
+            "wall" -> wrapWallId(normalId)
+            else -> null
+        }
+    }
+
+    suspend fun wrapWallId(wallId: String): VideoContentHolder? {
+        val wall = workUser.walls.getById(wallId)
+        val video = attachmentScanner.scanForAttachment(wall) { it.video }
+        return if (video != null)
+            return FullVideoHolder(video) // Пользователь получает полное видео если запросил стену
+        else
+            null
+    }
+
+    fun wrap(video: VkVideo): VideoContentHolder {
         baseCheckVideo(video)
-        return InfoVideoHolder(video, root)
+        return InfoVideoHolder(video)
     }
 
-    fun wrap(story: VkStory, root: RootMessage): VideoHolder {
+    fun wrap(story: VkStory): VideoContentHolder {
         if (story.isExpired)
             throw StoryExpiredException()
-        if (story.type != VkStory.Type.VIDEO)
-            throw StoryNotVideoException()
 
-        if (!story.canSee!!)
-            throw CantSeeStoryException()
-
-        return StoryHolder(story, root)
+        return if (story.canSee!!)
+            FullStoryHolder(story)
+        else
+            wrapStoryId(story.normalId())
     }
 
     /**
@@ -101,14 +134,17 @@ class VideoService(
         }
     }
 
+    // TODO, Вынести все холдеры в отдельные классы, наверное
     private inner class StringVideoHolder(
-        override val id: String,
-        override val root: RootMessage
+        override val videoId: String
     ) : VideoHolder {
         private lateinit var full: FullVideo
+        override val attachmentId: String
+            get() = "video$videoId"
+
         private suspend fun check() {
             if (!this::full.isInitialized) {
-                full = getVideoWithTryingLockBehavior(id)
+                full = getVideoWithTryingLockBehavior(videoId)
                 baseCheckVideo(full.video)
             }
         }
@@ -122,41 +158,104 @@ class VideoService(
             check()
             return full
         }
-
-        override val type: VideoHolder.VideoHolderType
-            get() = VideoHolder.VideoHolderType.VIDEO
     }
 
-    private inner class InfoVideoHolder(val video: VkVideo, override val root: RootMessage) : VideoHolder {
-        private lateinit var full: FullVideo
-        override val id: String
+    private inner class FullVideoHolder(val video: VkVideo) : VideoHolder {
+        override val videoId: String
             get() = video.normalId()
+        override val attachmentId: String
+            get() = "video$videoId"
+
+        override suspend fun video(): VkVideo {
+            return video
+        }
+
+        override suspend fun fullVideo(): FullVideo {
+            return FullVideo(
+                video,
+                null,
+                videoAccessorFactory,
+                workUserGroupService
+            )
+        }
+
+    }
+
+    private inner class InfoVideoHolder(val video: VkVideo) : VideoHolder {
+        private lateinit var full: FullVideo
+        override val videoId: String
+            get() = video.normalId()
+        override val attachmentId: String
+            get() = "video${video.normalId()}"
 
         override suspend fun video() = video
 
         override suspend fun fullVideo(): FullVideo {
             if (!this::full.isInitialized) {
-                full = getVideoWithTryingLockBehavior(id)
+                full = getVideoWithTryingLockBehavior(video.normalId())
                 baseCheckVideo(full.video)
             }
 
             return full
         }
-
-        override val type: VideoHolder.VideoHolderType
-            get() = VideoHolder.VideoHolderType.VIDEO
     }
 
-    private inner class StoryHolder(
-        val story: VkStory,
-        override val root: RootMessage
-    ) : VideoHolder {
-        override val id: String
-            get() = story.video!!.normalId()
+    private fun baseCheckStory(story: VkStory) {
+        if (!story.canSee!!)
+            throw CantSeeStoryException()
+        if (story.type != VkStory.Type.VIDEO)
+            throw StoryNotVideoException()
+    }
 
-        override suspend fun video() = story.video!!
+    private suspend fun findStoryById(id: String): VkStory {
+        return workUser.stories.getById(id)
+    }
 
-        // LongPoll присылает нам сторисы с полным видео
+    private inner class StringStoryHolder(
+        override val storyId: String
+    ) : StoryHolder {
+        override val attachmentId: String
+            get() = "story$storyId"
+        private var fullStory: VkStory? = null
+
+        private suspend fun fullStory(): VkStory {
+            fullStory?.let {
+                baseCheckStory(it)
+                return it
+            }
+            return findStoryById(storyId).also {
+                fullStory = it
+                baseCheckStory(it)
+            }
+        }
+
+        override suspend fun video(): VkVideo {
+            return fullStory().video!!
+        }
+
+        override suspend fun fullVideo(): FullVideo {
+            return FullVideo(
+                video(),
+                null,
+                videoAccessorFactory,
+                workUserGroupService
+            )
+        }
+
+    }
+
+    private inner class FullStoryHolder(
+        val story: VkStory
+    ) : StoryHolder {
+        override val storyId: String
+            get() = story.normalId()
+        override val attachmentId: String
+            get() = "story${story.normalId()}"
+
+        override suspend fun video(): VkVideo {
+            return story.video!!
+        }
+
         override suspend fun fullVideo(): FullVideo {
             return FullVideo(
                 story.video!!,
@@ -165,8 +264,5 @@ class VideoService(
                 workUserGroupService
             )
         }
-
-        override val type: VideoHolder.VideoHolderType
-            get() = VideoHolder.VideoHolderType.STORY
     }
 }

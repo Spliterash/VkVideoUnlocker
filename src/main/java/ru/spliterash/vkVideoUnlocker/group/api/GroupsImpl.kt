@@ -13,7 +13,7 @@ import ru.spliterash.vkVideoUnlocker.group.vkModels.LongPollServerResponse
 import ru.spliterash.vkVideoUnlocker.group.vkModels.VkGroupGetByIdResponse
 import ru.spliterash.vkVideoUnlocker.vk.VkHelper
 import ru.spliterash.vkVideoUnlocker.vk.actor.types.Actor
-import ru.spliterash.vkVideoUnlocker.vk.vkModels.VkConst
+import ru.spliterash.vkVideoUnlocker.vk.VkConst
 
 @Prototype
 class GroupsImpl(

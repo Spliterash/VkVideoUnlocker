@@ -7,7 +7,7 @@ import okhttp3.OkHttpClient
 import okhttp3.executeAsync
 import ru.spliterash.vkVideoUnlocker.message.vkModels.Forward
 import ru.spliterash.vkVideoUnlocker.vk.VkHelper
-import ru.spliterash.vkVideoUnlocker.vk.vkModels.VkConst
+import ru.spliterash.vkVideoUnlocker.vk.VkConst
 
 @Prototype
 class MessagesImpl(

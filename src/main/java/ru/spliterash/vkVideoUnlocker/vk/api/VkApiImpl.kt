@@ -7,6 +7,7 @@ import okhttp3.CookieJar
 import ru.spliterash.vkVideoUnlocker.common.okHttp.OkHttpFactory
 import ru.spliterash.vkVideoUnlocker.group.api.Groups
 import ru.spliterash.vkVideoUnlocker.message.api.Messages
+import ru.spliterash.vkVideoUnlocker.story.api.Stories
 import ru.spliterash.vkVideoUnlocker.video.api.Videos
 import ru.spliterash.vkVideoUnlocker.vk.actor.types.Actor
 import ru.spliterash.vkVideoUnlocker.vk.okhttp.VkInterceptor
@@ -32,4 +33,5 @@ class VkApiImpl(
     override val messages: Messages by lazy { context.createBean(Messages::class.java, client, actor) }
     override val groups: Groups by lazy { context.createBean(Groups::class.java, client, actor) }
     override val walls: Walls by lazy { context.createBean(Walls::class.java, client, actor) }
+    override val stories: Stories by lazy { context.createBean(Stories::class.java, client, actor) }
 }

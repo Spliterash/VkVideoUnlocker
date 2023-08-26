@@ -31,7 +31,7 @@ class DownloadVideoChain(
                 "Прикрепи видео к сообщению, ну или перешли его как обычно, чтобы я знал что тебе нужно"
             )
         } else {
-            message.reply(client, "Скачать: ${domain + Routes.DOWNLOAD.replace("{id}", videoHolder.id)}")
+            message.reply(client, "Скачать: ${domain + Routes.DOWNLOAD.replace("{attachmentId}", videoHolder.attachmentId)}")
         }
     }
 }

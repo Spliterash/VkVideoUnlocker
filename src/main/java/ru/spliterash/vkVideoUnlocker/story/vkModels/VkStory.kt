@@ -7,6 +7,8 @@ import ru.spliterash.vkVideoUnlocker.video.vkModels.VkVideo
 
 data class VkStory(
     val id: Int,
+    @JsonProperty("owner_id")
+    val ownerId: Int,
     @JsonProperty("is_expired")
     val isExpired: Boolean,
     @JsonProperty("can_see")
@@ -23,5 +25,10 @@ data class VkStory(
 
         @JsonEnumDefaultValue
         ANOTHER
+    }
+
+
+    fun normalId(): String {
+        return "${ownerId}_${id}"
     }
 }

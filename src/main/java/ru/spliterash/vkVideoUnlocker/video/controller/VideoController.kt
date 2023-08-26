@@ -12,6 +12,7 @@ import io.micronaut.http.server.types.files.StreamedFile
 import kotlinx.coroutines.*
 import ru.spliterash.vkVideoUnlocker.video.Routes
 import ru.spliterash.vkVideoUnlocker.video.accessor.VideoAccessor
+import ru.spliterash.vkVideoUnlocker.video.dto.FullVideo
 import ru.spliterash.vkVideoUnlocker.video.service.VideoService
 import java.util.concurrent.TimeUnit
 
@@ -25,16 +26,24 @@ class VideoController(
         .expireAfterWrite(30, TimeUnit.MINUTES)
         .build<String, Deferred<VideoAccessor>> {
             scope.async {
-                videoService.getVideoWithTryingLockBehavior(it).toAccessor()
+                load(it).toAccessor()
             }
         }
 
+    private suspend fun load(attachmentId: String): FullVideo {
+        val holder = videoService
+            .wrapAttachmentId(attachmentId)
+            ?: throw RuntimeException("Unknown attachment type in $attachmentId")
+
+        return holder.fullVideo()
+    }
+
     @Get(Routes.DOWNLOAD)
     suspend fun download(
-        @PathVariable("id") id: String,
+        @PathVariable("attachmentId") attachmentId: String,
         @Header("Range", defaultValue = "") rangeHeader: String?,
     ): HttpResponse<StreamedFile> {
-        val accessor = cache.get(id).await()
+        val accessor = cache.get(attachmentId).await()
 
         val info = if (rangeHeader.isNullOrEmpty())
             accessor.load()

@@ -27,7 +27,12 @@ class VkHelper(
     fun <T> readResponse(response: Response, type: TypeReference<T>): T {
         val node = checkAndGetResponse(response)
 
-        return mapper.convertValue(node, type)
+        return try {
+            mapper.convertValue(node, type)
+        } catch (ex: IllegalArgumentException) {
+            log.warn("Failed convert ${node.toPrettyString()} to ${type.type}")
+            throw ex
+        }
     }
 
     @Throws(VkApiException::class)

@@ -3,7 +3,7 @@ package ru.spliterash.vkVideoUnlocker.vk.okhttp
 import okhttp3.Interceptor
 import okhttp3.Response
 import ru.spliterash.vkVideoUnlocker.vk.actor.types.Actor
-import ru.spliterash.vkVideoUnlocker.vk.vkModels.VkConst
+import ru.spliterash.vkVideoUnlocker.vk.VkConst
 
 class VkInterceptor(private val actor: Actor) : Interceptor {
     override fun intercept(chain: Interceptor.Chain): Response {

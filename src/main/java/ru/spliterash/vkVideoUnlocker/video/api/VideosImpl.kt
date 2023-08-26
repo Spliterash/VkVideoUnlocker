@@ -1,5 +1,6 @@
 package ru.spliterash.vkVideoUnlocker.video.api
 
+import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import io.micronaut.context.annotation.Parameter
@@ -13,11 +14,11 @@ import ru.spliterash.vkVideoUnlocker.video.exceptions.VideoLockedException
 import ru.spliterash.vkVideoUnlocker.video.exceptions.VideoNotFoundException
 import ru.spliterash.vkVideoUnlocker.video.vkModels.VkSaveResponse
 import ru.spliterash.vkVideoUnlocker.video.vkModels.VkVideo
-import ru.spliterash.vkVideoUnlocker.video.vkModels.VkVideoGetResponse
 import ru.spliterash.vkVideoUnlocker.video.vkModels.VkVideoUploadResponse
 import ru.spliterash.vkVideoUnlocker.vk.VkHelper
 import ru.spliterash.vkVideoUnlocker.vk.readResponse
-import ru.spliterash.vkVideoUnlocker.vk.vkModels.VkConst
+import ru.spliterash.vkVideoUnlocker.vk.VkConst
+import ru.spliterash.vkVideoUnlocker.vk.vkModels.VkItemsResponse
 
 @Prototype
 class VideosImpl(
@@ -42,7 +43,7 @@ class VideosImpl(
             )
             .build()
             .executeAsync(client)
-            .readResponse(helper, VkVideoGetResponse::class.java)
+            .readResponse(helper, object : TypeReference<VkItemsResponse<VkVideo>>() {})
 
         val video = mapped.items.firstOrNull() ?: throw VideoNotFoundException()
         if (video.contentRestricted)

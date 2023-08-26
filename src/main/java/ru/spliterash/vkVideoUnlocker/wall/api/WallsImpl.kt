@@ -6,8 +6,9 @@ import io.micronaut.context.annotation.Prototype
 import okhttp3.OkHttpClient
 import ru.spliterash.vkVideoUnlocker.common.okHttp.executeAsync
 import ru.spliterash.vkVideoUnlocker.longpoll.message.attachments.SomethingWithAttachments
+import ru.spliterash.vkVideoUnlocker.vk.VkConst
 import ru.spliterash.vkVideoUnlocker.vk.VkHelper
-import ru.spliterash.vkVideoUnlocker.vk.vkModels.VkConst
+import ru.spliterash.vkVideoUnlocker.vk.vkModels.VkItemsResponse
 import ru.spliterash.vkVideoUnlocker.wall.exceptions.WallPostNotFoundException
 
 @Prototype
@@ -22,13 +23,18 @@ class WallsImpl(
             .url(
                 VkConst.urlBuilder("wall.getById")
                     .addQueryParameter("posts", id)
+                    .addQueryParameter("extended", "1")
+                    .addQueryParameter("fields", "video_files")
                     .build()
             )
             .build()
             .executeAsync(client)
 
-        val list = vkHelper.readResponse(response, object : TypeReference<List<SomethingWithAttachments>>() {})
+        val items = vkHelper.readResponse(
+            response,
+            object : TypeReference<VkItemsResponse<SomethingWithAttachments>>() {}
+        )
 
-        return list.firstOrNull() ?: throw WallPostNotFoundException()
+        return items.items.firstOrNull() ?: throw WallPostNotFoundException()
     }
 }
