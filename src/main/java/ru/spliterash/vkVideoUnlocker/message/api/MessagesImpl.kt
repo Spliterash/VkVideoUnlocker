@@ -1,11 +1,10 @@
-package ru.spliterash.vkVideoUnlocker.message.impl
+package ru.spliterash.vkVideoUnlocker.message.api
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.micronaut.context.annotation.Parameter
 import io.micronaut.context.annotation.Prototype
 import okhttp3.OkHttpClient
 import okhttp3.executeAsync
-import ru.spliterash.vkVideoUnlocker.message.Messages
 import ru.spliterash.vkVideoUnlocker.message.vkModels.Forward
 import ru.spliterash.vkVideoUnlocker.vk.VkHelper
 import ru.spliterash.vkVideoUnlocker.vk.vkModels.VkConst

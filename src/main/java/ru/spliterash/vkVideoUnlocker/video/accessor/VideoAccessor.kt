@@ -1,4 +1,4 @@
-package ru.spliterash.vkVideoUnlocker.video
+package ru.spliterash.vkVideoUnlocker.video.accessor
 
 import java.io.InputStream
 

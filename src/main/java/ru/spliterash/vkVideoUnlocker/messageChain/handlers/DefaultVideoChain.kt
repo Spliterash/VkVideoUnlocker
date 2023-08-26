@@ -8,6 +8,7 @@ import ru.spliterash.vkVideoUnlocker.common.exceptions.VkUnlockerException
 import ru.spliterash.vkVideoUnlocker.longpoll.message.*
 import ru.spliterash.vkVideoUnlocker.message.utils.MessageUtils
 import ru.spliterash.vkVideoUnlocker.messageChain.MessageHandler
+import ru.spliterash.vkVideoUnlocker.video.service.VideoReUploadService
 import ru.spliterash.vkVideoUnlocker.video.service.VideoService
 import ru.spliterash.vkVideoUnlocker.vk.actor.GroupUser
 import ru.spliterash.vkVideoUnlocker.vk.api.VkApi
@@ -16,7 +17,7 @@ import ru.spliterash.vkVideoUnlocker.vk.api.VkApi
 class DefaultVideoChain(
     @GroupUser private val client: VkApi,
     private val utils: MessageUtils,
-    private val videoService: VideoService,
+    private val reUploadService: VideoReUploadService,
 ) : MessageHandler {
     override suspend fun handle(message: RootMessage): Boolean = coroutineScope {
         val video = try {
@@ -40,7 +41,7 @@ class DefaultVideoChain(
         }
 
         val unlockedId: String = try {
-            videoService.getUnlockedId(video)
+            reUploadService.getUnlockedId(video)
         } catch (ex: VkUnlockerException) {
             handleException(ex, message)
             return@coroutineScope true

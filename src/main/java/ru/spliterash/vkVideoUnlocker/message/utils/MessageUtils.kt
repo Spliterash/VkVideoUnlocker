@@ -7,7 +7,7 @@ import ru.spliterash.vkVideoUnlocker.longpoll.message.attachments.AttachmentCont
 import ru.spliterash.vkVideoUnlocker.longpoll.message.attachments.AttachmentContent
 import ru.spliterash.vkVideoUnlocker.message.utils.MessageUtils.Checker
 import ru.spliterash.vkVideoUnlocker.story.vkModels.VkStory
-import ru.spliterash.vkVideoUnlocker.video.service.VideoHolder
+import ru.spliterash.vkVideoUnlocker.video.holder.VideoHolder
 import ru.spliterash.vkVideoUnlocker.video.service.VideoService
 import ru.spliterash.vkVideoUnlocker.video.vkModels.VkVideo
 import ru.spliterash.vkVideoUnlocker.vk.actor.types.WorkUser

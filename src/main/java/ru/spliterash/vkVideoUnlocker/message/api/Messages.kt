@@ -1,4 +1,4 @@
-package ru.spliterash.vkVideoUnlocker.message
+package ru.spliterash.vkVideoUnlocker.message.api
 
 interface Messages {
     suspend fun sendMessage(

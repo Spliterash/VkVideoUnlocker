@@ -1,9 +1,10 @@
-package ru.spliterash.vkVideoUnlocker.video.impl
+package ru.spliterash.vkVideoUnlocker.video.accessor
 
 import jakarta.inject.Singleton
 import ru.spliterash.vkVideoUnlocker.common.okHttp.OkHttpFactory
 import ru.spliterash.vkVideoUnlocker.video.vkModels.VkVideo
-import ru.spliterash.vkVideoUnlocker.video.VideoAccessor
+import ru.spliterash.vkVideoUnlocker.video.accessor.VideoAccessor
+import ru.spliterash.vkVideoUnlocker.video.accessor.VideoAccessorImpl
 
 @Singleton
 class VideoAccessorFactory(

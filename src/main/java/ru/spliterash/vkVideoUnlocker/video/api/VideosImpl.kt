@@ -1,4 +1,4 @@
-package ru.spliterash.vkVideoUnlocker.video.impl
+package ru.spliterash.vkVideoUnlocker.video.api
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
@@ -7,10 +7,8 @@ import io.micronaut.context.annotation.Prototype
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
 import okio.BufferedSink
-import org.apache.commons.logging.LogFactory
 import ru.spliterash.vkVideoUnlocker.common.okHttp.executeAsync
-import ru.spliterash.vkVideoUnlocker.video.VideoAccessor
-import ru.spliterash.vkVideoUnlocker.video.api.Videos
+import ru.spliterash.vkVideoUnlocker.video.accessor.VideoAccessor
 import ru.spliterash.vkVideoUnlocker.video.exceptions.VideoLockedException
 import ru.spliterash.vkVideoUnlocker.video.exceptions.VideoNotFoundException
 import ru.spliterash.vkVideoUnlocker.video.vkModels.VkSaveResponse
@@ -20,8 +18,6 @@ import ru.spliterash.vkVideoUnlocker.video.vkModels.VkVideoUploadResponse
 import ru.spliterash.vkVideoUnlocker.vk.VkHelper
 import ru.spliterash.vkVideoUnlocker.vk.readResponse
 import ru.spliterash.vkVideoUnlocker.vk.vkModels.VkConst
-
-private val log = LogFactory.getLog(VideosImpl::class.java)
 
 @Prototype
 class VideosImpl(

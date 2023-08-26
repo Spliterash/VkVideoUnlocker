@@ -1,10 +1,9 @@
-package ru.spliterash.vkVideoUnlocker.video.impl
+package ru.spliterash.vkVideoUnlocker.video.accessor
 
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.executeAsync
 import org.apache.commons.logging.LogFactory
-import ru.spliterash.vkVideoUnlocker.video.VideoAccessor
 import java.net.URL
 
 

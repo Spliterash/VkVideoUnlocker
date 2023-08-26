@@ -3,8 +3,8 @@ package ru.spliterash.vkVideoUnlocker.video.dto
 import ru.spliterash.vkVideoUnlocker.group.WorkUserGroupService
 import ru.spliterash.vkVideoUnlocker.group.dto.GroupStatus
 import ru.spliterash.vkVideoUnlocker.video.vkModels.VkVideo
-import ru.spliterash.vkVideoUnlocker.video.VideoAccessor
-import ru.spliterash.vkVideoUnlocker.video.impl.VideoAccessorFactory
+import ru.spliterash.vkVideoUnlocker.video.accessor.VideoAccessor
+import ru.spliterash.vkVideoUnlocker.video.accessor.VideoAccessorFactory
 
 /**
  * Видео, доступное для просмотра, вместе со статусом группы
