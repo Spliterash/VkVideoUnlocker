@@ -4,15 +4,27 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.executeAsync
 import org.apache.commons.logging.LogFactory
+import ru.spliterash.vkVideoUnlocker.video.vkModels.VkVideo
 import java.net.URL
 
 
 class VideoAccessorImpl(
     private val client: OkHttpClient,
-    private val url: URL,
+    private val video: VkVideo,
 ) : VideoAccessor {
-    override suspend fun size(): Long {
-        val request = builder()
+    override val maxQuality: Int
+    override val maxQualityUrl: URL
+    override fun preview(): URL = video.preview()
+
+    init {
+        val (quality, url) = video.maxQuality()
+
+        maxQuality = quality;
+        maxQualityUrl = url
+    }
+
+    override suspend fun size(quality: Int): Long {
+        val request = builder(video.qualityUrl(quality))
             .head()
             .build()
 
@@ -23,8 +35,8 @@ class VideoAccessorImpl(
         return response.headers["Content-Length"]?.toLong() ?: -1L
     }
 
-    override suspend fun load(): VideoAccessor.Info {
-        val request = builder()
+    override suspend fun load(quality: Int): VideoAccessor.Info {
+        val request = builder(video.qualityUrl(quality))
             .get()
             .build()
 
@@ -43,8 +55,10 @@ class VideoAccessorImpl(
         )
     }
 
-    override suspend fun load(range: String): VideoAccessor.Info {
-        val request = builder()
+    override suspend fun load(quality: Int, range: String): VideoAccessor.Info {
+        val url = video.qualityUrl(quality)
+
+        val request = builder(url)
             .get()
             .header("Range", range)
             .build()
@@ -64,7 +78,7 @@ class VideoAccessorImpl(
         )
     }
 
-    private fun builder(): Request.Builder = Request.Builder()
+    private fun builder(url: URL): Request.Builder = Request.Builder()
         .url(url)
         .header(
             "Accept",
