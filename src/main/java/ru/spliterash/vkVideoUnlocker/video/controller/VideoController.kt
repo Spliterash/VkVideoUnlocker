@@ -12,13 +12,17 @@ import ru.spliterash.vkVideoUnlocker.video.DownloadUrlSupplier
 import ru.spliterash.vkVideoUnlocker.video.Routes
 import ru.spliterash.vkVideoUnlocker.video.accessor.VideoAccessor
 import ru.spliterash.vkVideoUnlocker.video.controller.response.VideoResponse
+import ru.spliterash.vkVideoUnlocker.video.controller.response.VideoUnlockResponse
 import ru.spliterash.vkVideoUnlocker.video.dto.FullVideo
+import ru.spliterash.vkVideoUnlocker.video.exceptions.UnlockedVideoFromPrivateGroupException
+import ru.spliterash.vkVideoUnlocker.video.service.VideoReUploadService
 import ru.spliterash.vkVideoUnlocker.video.service.VideoService
 import java.util.concurrent.TimeUnit
 
 @Controller
 class VideoController(
     private val videoService: VideoService,
+    private val reUploadService: VideoReUploadService,
     private val downloadUrlSupplier: DownloadUrlSupplier,
     @Value("\${vk-unlocker.domain}") private val domain: String
 ) {
@@ -33,11 +37,27 @@ class VideoController(
         }
 
     private suspend fun load(attachmentId: String): FullVideo {
-        val holder = videoService
-            .wrapAttachmentId(attachmentId)
-            ?: throw RuntimeException("Unknown attachment type in $attachmentId")
+        val holder = videoService.wrapAttachmentId(attachmentId)
 
         return holder.fullVideo()
+    }
+
+    @Get(Routes.UNLOCK)
+    @Produces(MediaType.APPLICATION_JSON)
+    suspend fun unlock(
+        @PathVariable("attachmentId") attachmentId: String
+    ): VideoUnlockResponse {
+        val holder = videoService.wrapAttachmentId(attachmentId)
+        val locked = holder
+            .fullVideo()
+            .shouldBeLocked()
+        if (locked)
+            throw UnlockedVideoFromPrivateGroupException()
+
+        val unlockedId = reUploadService.getUnlockedId(holder);
+
+
+        return VideoUnlockResponse(unlockedId.id)
     }
 
     @Get(Routes.INFO)

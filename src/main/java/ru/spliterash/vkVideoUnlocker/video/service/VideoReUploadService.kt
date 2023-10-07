@@ -9,6 +9,7 @@ import ru.spliterash.vkVideoUnlocker.video.exceptions.VideoOpenException
 import ru.spliterash.vkVideoUnlocker.video.holder.VideoContentHolder
 import ru.spliterash.vkVideoUnlocker.video.holder.VideoHolder
 import ru.spliterash.vkVideoUnlocker.video.repository.VideoRepository
+import ru.spliterash.vkVideoUnlocker.video.service.dto.UnlockResult
 import ru.spliterash.vkVideoUnlocker.video.vkModels.VkVideo
 import ru.spliterash.vkVideoUnlocker.vk.actor.GroupUser
 import ru.spliterash.vkVideoUnlocker.vk.actor.types.WorkUser
@@ -22,9 +23,9 @@ class VideoReUploadService(
     @WorkUser private val workUser: VkApi,
     @GroupUser private val groupUser: VkApi,
 ) {
-    private val inProgress = Collections.synchronizedMap(hashMapOf<String, Deferred<String>>())
+    private val inProgress = Collections.synchronizedMap(hashMapOf<String, Deferred<UnlockResult>>())
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-    suspend fun getUnlockedId(holder: VideoContentHolder): String {
+    suspend fun getUnlockedId(holder: VideoContentHolder): UnlockResult {
         return inProgress.computeIfAbsent(holder.attachmentId) {
             scope.async {
                 try {
@@ -36,20 +37,26 @@ class VideoReUploadService(
         }.await()
     }
 
-    private suspend fun actualGetUnlockedId(holder: VideoContentHolder): String {
+    private suspend fun softGetUnlockedId(holder: VideoContentHolder): UnlockResult? {
         val attachmentId = holder.attachmentId
         val unlocked = videoRepository.findVideo(attachmentId)
         if (unlocked != null)
-            return unlocked.unlockedId
+            return UnlockResult(unlocked.unlockedId, unlocked.private)
         val video = holder.video()
         checkForReUpload(video)
 
         // Проверяем на закрытость только видео
         if (holder is VideoHolder) {
-            val locked = videoService.isLocked(holder.videoId)
+            val locked = holder.isLocked()
             if (!locked)
                 throw VideoOpenException()
         }
+        return null
+    }
+
+    private suspend fun actualGetUnlockedId(holder: VideoContentHolder): UnlockResult {
+        val unlockedId = softGetUnlockedId(holder)
+        if (unlockedId != null) return unlockedId
 
         return reUploadAndSave(holder)
     }
@@ -59,24 +66,23 @@ class VideoReUploadService(
             throw SelfVideoException()
     }
 
-    private suspend fun reUploadAndSave(holder: VideoContentHolder): String {
+    private suspend fun reUploadAndSave(holder: VideoContentHolder): UnlockResult {
         val fullVideo = holder.fullVideo()
 
         val originalAttachmentId = holder.attachmentId
         val videoAccessor = fullVideo.toAccessor()
-        val groupStatus = fullVideo.status()
-
+        val private = fullVideo.shouldBeLocked()
 
         val reUploadedId = workUser.videos.upload(
             groupUser.id,
             originalAttachmentId,
-            groupStatus != GroupStatus.PUBLIC,
+            private,
             videoAccessor
         )
 
-        val entity = VideoEntity(originalAttachmentId, reUploadedId)
+        val entity = VideoEntity(originalAttachmentId, reUploadedId, private)
         videoRepository.save(entity)
 
-        return reUploadedId
+        return UnlockResult(reUploadedId, private)
     }
 }

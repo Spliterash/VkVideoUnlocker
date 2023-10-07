@@ -2,9 +2,9 @@ package ru.spliterash.vkVideoUnlocker.video.dto
 
 import ru.spliterash.vkVideoUnlocker.group.WorkUserGroupService
 import ru.spliterash.vkVideoUnlocker.group.dto.GroupStatus
-import ru.spliterash.vkVideoUnlocker.video.vkModels.VkVideo
 import ru.spliterash.vkVideoUnlocker.video.accessor.VideoAccessor
 import ru.spliterash.vkVideoUnlocker.video.accessor.VideoAccessorFactory
+import ru.spliterash.vkVideoUnlocker.video.vkModels.VkVideo
 
 /**
  * Видео, доступное для просмотра, вместе со статусом группы
@@ -24,6 +24,10 @@ class FullVideo(
         return status ?: groupService.joinGroup(-video.ownerId).also {
             status = it
         }
+    }
+
+    suspend fun shouldBeLocked(): Boolean {
+        return status() != GroupStatus.PUBLIC
     }
 
     fun toAccessor(): VideoAccessor {

@@ -1,6 +1,7 @@
 package ru.spliterash.vkVideoUnlocker.video.holder
 
 import ru.spliterash.vkVideoUnlocker.video.dto.FullVideo
+import ru.spliterash.vkVideoUnlocker.video.exceptions.VideoOpenException
 import ru.spliterash.vkVideoUnlocker.video.vkModels.VkVideo
 
 sealed interface VideoContentHolder {

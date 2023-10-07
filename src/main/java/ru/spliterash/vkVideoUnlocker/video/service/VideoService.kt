@@ -9,6 +9,7 @@ import ru.spliterash.vkVideoUnlocker.story.vkModels.VkStory
 import ru.spliterash.vkVideoUnlocker.video.accessor.VideoAccessorFactory
 import ru.spliterash.vkVideoUnlocker.video.dto.FullVideo
 import ru.spliterash.vkVideoUnlocker.video.exceptions.*
+import ru.spliterash.vkVideoUnlocker.video.holder.AbstractVideoContentHolder
 import ru.spliterash.vkVideoUnlocker.video.holder.StoryHolder
 import ru.spliterash.vkVideoUnlocker.video.holder.VideoContentHolder
 import ru.spliterash.vkVideoUnlocker.video.holder.VideoHolder
@@ -40,15 +41,15 @@ class VideoService(
             throw VideoTooLongException()
     }
 
-    fun wrapVideoId(videoId: String): VideoContentHolder {
+    fun wrapVideoId(videoId: String): VideoHolder {
         return StringVideoHolder(videoId)
     }
 
-    fun wrapStoryId(storyId: String): VideoContentHolder {
+    fun wrapStoryId(storyId: String): StoryHolder {
         return StringStoryHolder(storyId)
     }
 
-    suspend fun wrapAttachmentId(attachmentId: String): VideoContentHolder? {
+    suspend fun wrapAttachmentId(attachmentId: String): VideoContentHolder {
         val matcher = VkConst.VK_ATTACHMENT_PATTERN.matcher(attachmentId)
         if (!matcher.find())
             throw IllegalArgumentException("Attachment id has wrong format")
@@ -62,17 +63,17 @@ class VideoService(
             "video" -> wrapVideoId(normalId)
             "story" -> wrapStoryId(normalId)
             "wall" -> wrapWallId(normalId)
-            else -> null
+            else -> throw IllegalArgumentException("Unsupported attachment type")
         }
     }
 
-    suspend fun wrapWallId(wallId: String): VideoContentHolder? {
+    suspend fun wrapWallId(wallId: String): VideoContentHolder {
         val wall = workUser.walls.getById(wallId)
         val video = attachmentScanner.scanForAttachment(wall) { it.video }
-        return if (video != null)
+        if (video != null)
             return FullVideoHolder(video) // Пользователь получает полное видео если запросил стену
         else
-            null
+            throw VideoNotFoundException()
     }
 
     fun wrap(video: VkVideo): VideoContentHolder {
@@ -134,33 +135,32 @@ class VideoService(
         }
     }
 
+    private abstract inner class AbstractVideoHolder() : AbstractVideoContentHolder(), VideoHolder {
+        override suspend fun isLocked(): Boolean {
+            return isLocked(videoId)
+        }
+    }
+
     // TODO, Вынести все холдеры в отдельные классы, наверное
     private inner class StringVideoHolder(
         override val videoId: String
-    ) : VideoHolder {
-        private lateinit var full: FullVideo
+    ) : AbstractVideoHolder() {
         override val attachmentId: String
             get() = "video$videoId"
 
-        private suspend fun check() {
-            if (!this::full.isInitialized) {
-                full = getVideoWithTryingLockBehavior(videoId)
-                baseCheckVideo(full.video)
-            }
-        }
-
         override suspend fun video(): VkVideo {
-            check()
-            return full.video
+            return fullVideo().video
         }
 
-        override suspend fun fullVideo(): FullVideo {
-            check()
+        override suspend fun loadFullVideo(): FullVideo {
+            val full = getVideoWithTryingLockBehavior(videoId)
+            baseCheckVideo(full.video)
+
             return full
         }
     }
 
-    private inner class FullVideoHolder(val video: VkVideo) : VideoHolder {
+    private inner class FullVideoHolder(val video: VkVideo) : AbstractVideoHolder() {
         override val videoId: String
             get() = video.normalId()
         override val attachmentId: String
@@ -170,7 +170,7 @@ class VideoService(
             return video
         }
 
-        override suspend fun fullVideo(): FullVideo {
+        override suspend fun loadFullVideo(): FullVideo {
             return FullVideo(
                 video,
                 null,
@@ -178,23 +178,18 @@ class VideoService(
                 workUserGroupService
             )
         }
-
     }
 
-    private inner class InfoVideoHolder(val video: VkVideo) : VideoHolder {
-        private lateinit var full: FullVideo
+    private inner class InfoVideoHolder(val video: VkVideo) : AbstractVideoHolder() {
         override val videoId: String
             get() = video.normalId()
         override val attachmentId: String
             get() = "video${video.normalId()}"
 
         override suspend fun video() = video
-
-        override suspend fun fullVideo(): FullVideo {
-            if (!this::full.isInitialized) {
-                full = getVideoWithTryingLockBehavior(video.normalId())
-                baseCheckVideo(full.video)
-            }
+        override suspend fun loadFullVideo(): FullVideo {
+            val full = getVideoWithTryingLockBehavior(video.normalId())
+            baseCheckVideo(full.video)
 
             return full
         }

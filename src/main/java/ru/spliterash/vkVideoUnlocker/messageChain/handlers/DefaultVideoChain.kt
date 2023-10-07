@@ -40,7 +40,7 @@ class DefaultVideoChain(
         }
 
         val unlockedId: String = try {
-            reUploadService.getUnlockedId(video)
+            reUploadService.getUnlockedId(video).id
         } catch (ex: VkUnlockerException) {
             handleException(ex, message)
             return@coroutineScope true
