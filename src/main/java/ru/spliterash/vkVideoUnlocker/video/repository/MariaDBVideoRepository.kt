@@ -53,9 +53,11 @@ class MariaDBVideoRepository(
 
     override suspend fun save(entity: VideoEntity) {
         jdbi.withHandleUnchecked { handle ->
-            handle.createUpdate("INSERT INTO videos (id,unlocked_id) values (:id,:unlocked_id) on duplicate key update unlocked_id = :unlocked_id")
+            handle.createUpdate("INSERT INTO videos (id,unlocked_id,private) values (:id,:unlocked_id,:private) " +
+                    "on duplicate key update unlocked_id = :unlocked_id, private = :private")
                 .bind("id", entity.id)
                 .bind("unlocked_id", entity.unlockedId)
+                .bind("private", entity.private)
                 .execute()
         }
     }
