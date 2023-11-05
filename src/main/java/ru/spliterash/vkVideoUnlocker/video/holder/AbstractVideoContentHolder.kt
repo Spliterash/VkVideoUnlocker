@@ -2,8 +2,18 @@ package ru.spliterash.vkVideoUnlocker.video.holder
 
 import ru.spliterash.vkVideoUnlocker.video.dto.FullVideo
 
-abstract class AbstractVideoContentHolder : VideoContentHolder {
+abstract class AbstractVideoContentHolder(
+    val contentId:String
+) : VideoContentHolder {
     protected var fullVideo: FullVideo? = null
+
+    override val ownerId: Int
+        get() {
+            val contentId = contentId
+            val split = contentId.split("_")
+
+            return split[0].toInt()
+        }
 
     protected abstract suspend fun loadFullVideo(): FullVideo
     final override suspend fun fullVideo(): FullVideo {

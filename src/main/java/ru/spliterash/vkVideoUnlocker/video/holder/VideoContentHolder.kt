@@ -9,9 +9,11 @@ sealed interface VideoContentHolder {
      * ID attachment'а
      */
     val attachmentId: String
+
     /**
      * Видео без ссылок на скачивание, чисто инфа
      */
     suspend fun video(): VkVideo
     suspend fun fullVideo(): FullVideo
+    val ownerId: Int
 }

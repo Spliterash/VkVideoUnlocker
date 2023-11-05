@@ -96,10 +96,10 @@ class VideoService(
      *
      * Необходимо проверить видео через baseCheck перед использованием
      */
-    suspend fun getVideoWithTryingLockBehavior(videoId: String): FullVideo {
+    private suspend fun getVideoWithTryingLockBehavior(holder: VideoLoader): FullVideo {
         // Прежде всего попробуем просто его получить
         try {
-            val video = workUser.videos.getVideo(videoId)
+            val video = holder.loadVideo()
             return FullVideo(
                 video,
                 null,
@@ -109,8 +109,7 @@ class VideoService(
         } catch (_: VideoLockedException) {
         }
 
-        val split = videoId.split("_")
-        val ownerId = split[0].toInt()
+        val ownerId = holder.ownerId
         if (ownerId > 0)
             throw WeDoNotWorkWithLockedUserVideosException()
 
@@ -118,7 +117,7 @@ class VideoService(
         val status = workUserGroupService.joinGroup(groupId)
 
         val video = try {
-            workUser.videos.getVideo(videoId)
+            holder.loadVideo()
         } catch (locked: VideoLockedException) {
             // Вк по какой то непонятной причине говорит что видео доступно только подписчикам, если оно приватное
             throw VideoPrivateException()
@@ -135,36 +134,39 @@ class VideoService(
         }
     }
 
-    private abstract inner class AbstractVideoHolder() : AbstractVideoContentHolder(), VideoHolder {
+    private interface VideoLoader {
+        val ownerId: Int
+        suspend fun loadVideo(): VkVideo
+    }
+
+    private abstract inner class AbstractVideoHolder(contentId: String) : AbstractVideoContentHolder(contentId),
+        VideoHolder {
+        override val attachmentId: String
+            get() = "video$contentId"
+
         override suspend fun isLocked(): Boolean {
-            return isLocked(videoId)
+            return isLocked(contentId)
         }
     }
 
     // TODO, Вынести все холдеры в отдельные классы, наверное
-    private inner class StringVideoHolder(
-        override val videoId: String
-    ) : AbstractVideoHolder() {
-        override val attachmentId: String
-            get() = "video$videoId"
+    private inner class StringVideoHolder(contentId: String) : AbstractVideoHolder(contentId), VideoLoader {
 
         override suspend fun video(): VkVideo {
             return fullVideo().video
         }
 
         override suspend fun loadFullVideo(): FullVideo {
-            val full = getVideoWithTryingLockBehavior(videoId)
+            val full = getVideoWithTryingLockBehavior(this)
             baseCheckVideo(full.video)
 
             return full
         }
+
+        override suspend fun loadVideo() = workUser.videos.getVideo(contentId)
     }
 
-    private inner class FullVideoHolder(val video: VkVideo) : AbstractVideoHolder() {
-        override val videoId: String
-            get() = video.normalId()
-        override val attachmentId: String
-            get() = "video$videoId"
+    private inner class FullVideoHolder(val video: VkVideo) : AbstractVideoHolder(video.normalId()) {
 
         override suspend fun video(): VkVideo {
             return video
@@ -180,19 +182,16 @@ class VideoService(
         }
     }
 
-    private inner class InfoVideoHolder(val video: VkVideo) : AbstractVideoHolder() {
-        override val videoId: String
-            get() = video.normalId()
-        override val attachmentId: String
-            get() = "video${video.normalId()}"
-
+    private inner class InfoVideoHolder(val video: VkVideo) : AbstractVideoHolder(video.normalId()), VideoLoader {
         override suspend fun video() = video
         override suspend fun loadFullVideo(): FullVideo {
-            val full = getVideoWithTryingLockBehavior(video.normalId())
+            val full = getVideoWithTryingLockBehavior(this)
             baseCheckVideo(full.video)
 
             return full
         }
+
+        override suspend fun loadVideo() = workUser.videos.getVideo(contentId)
     }
 
     private fun baseCheckStory(story: VkStory) {
@@ -206,52 +205,43 @@ class VideoService(
         return workUser.stories.getById(id)
     }
 
-    private inner class StringStoryHolder(
-        override val storyId: String
-    ) : StoryHolder {
+    private abstract inner class AbstractStoryHolder(contentId: String) :
+        AbstractVideoContentHolder(contentId),
+        StoryHolder {
         override val attachmentId: String
-            get() = "story$storyId"
-        private var fullStory: VkStory? = null
+            get() = "story$contentId"
+    }
 
-        private suspend fun fullStory(): VkStory {
-            fullStory?.let {
-                baseCheckStory(it)
-                return it
-            }
-            return findStoryById(storyId).also {
-                fullStory = it
-                baseCheckStory(it)
-            }
-        }
+    private inner class StringStoryHolder(contentId: String) : AbstractStoryHolder(contentId), VideoLoader {
+        override val attachmentId: String
+            get() = "story$contentId"
 
         override suspend fun video(): VkVideo {
-            return fullStory().video!!
+            return fullVideo().video
         }
 
-        override suspend fun fullVideo(): FullVideo {
-            return FullVideo(
-                video(),
-                null,
-                videoAccessorFactory,
-                workUserGroupService
-            )
+        override suspend fun loadFullVideo(): FullVideo {
+            return getVideoWithTryingLockBehavior(this)
         }
 
+        override suspend fun loadVideo(): VkVideo {
+            val story = findStoryById(contentId)
+            baseCheckStory(story)
+
+            return story.video!!
+        }
     }
 
     private inner class FullStoryHolder(
         val story: VkStory
-    ) : StoryHolder {
-        override val storyId: String
-            get() = story.normalId()
-        override val attachmentId: String
-            get() = "story${story.normalId()}"
+    ) : AbstractStoryHolder(story.normalId()) {
 
         override suspend fun video(): VkVideo {
             return story.video!!
         }
 
-        override suspend fun fullVideo(): FullVideo {
+        override suspend fun loadFullVideo(): FullVideo {
+            baseCheckStory(story)
             return FullVideo(
                 story.video!!,
                 null,
