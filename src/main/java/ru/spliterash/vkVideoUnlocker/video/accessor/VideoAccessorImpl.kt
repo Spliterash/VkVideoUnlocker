@@ -78,20 +78,26 @@ class VideoAccessorImpl(
         )
     }
 
-    private fun builder(url: URL): Request.Builder = Request.Builder()
-        .url(url)
-        .header(
-            "Accept",
-            "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
-        )
-        .header(
-            "Accept-Encoding",
-            "gzip, deflate, br"
-        )
-        .header(
-            "User-Agent",
+    private fun builder(url: URL): Request.Builder {
+        val userAgent = if (url.query.contains("srcAg=GECKO"))
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:120.0) Gecko/20100101 Firefox/120.0"
+        else
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36"
-        )
+        return Request.Builder()
+            .url(url)
+            .header(
+                "Accept",
+                "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+            )
+            .header(
+                "Accept-Encoding",
+                "gzip, deflate, br"
+            )
+            .header(
+                "User-Agent",
+                userAgent
+            )
+    }
 
     companion object {
         private val log = LogFactory.getLog(VideoAccessorImpl::class.java)
