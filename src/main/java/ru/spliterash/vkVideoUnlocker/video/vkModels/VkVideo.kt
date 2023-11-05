@@ -75,7 +75,7 @@ data class VkVideo(
         map.putIfNotNull(720, files?.mp4720)
         map.putIfNotNull(480, files?.mp4480)
         map.putIfNotNull(360, files?.mp4360)
-        map.putIfNotNull(240, files?.mp4480)
+        map.putIfNotNull(240, files?.mp4240)
         map.putIfNotNull(144, files?.mp4144)
 
         return map
