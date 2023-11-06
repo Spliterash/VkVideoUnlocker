@@ -1,13 +1,15 @@
 package ru.spliterash.vkVideoUnlocker.message.api
 
+import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.micronaut.context.annotation.Parameter
 import io.micronaut.context.annotation.Prototype
 import okhttp3.OkHttpClient
-import okhttp3.executeAsync
-import ru.spliterash.vkVideoUnlocker.message.vkModels.Forward
-import ru.spliterash.vkVideoUnlocker.vk.VkHelper
+import ru.spliterash.vkVideoUnlocker.common.okHttp.executeAsync
+import ru.spliterash.vkVideoUnlocker.message.vkModels.request.Forward
+import ru.spliterash.vkVideoUnlocker.message.vkModels.response.MessageSendResponse
 import ru.spliterash.vkVideoUnlocker.vk.VkConst
+import ru.spliterash.vkVideoUnlocker.vk.VkHelper
 
 @Prototype
 class MessagesImpl(
@@ -15,14 +17,14 @@ class MessagesImpl(
     private val vkHelper: VkHelper,
     private val mapper: ObjectMapper
 ) : Messages {
-    override suspend fun sendMessage(peerId: Int, message: String?, replyTo: Int?, attachments: String?): Int {
-        val request = VkConst
+    override suspend fun sendMessage(peerId: Long, message: String?, replyTo: Long?, attachments: String?): Long {
+        val response = VkConst
             .requestBuilder()
             .url(
                 VkConst.urlBuilder("messages.send")
                     .addQueryParameter("random_id", "0")
-                    .addQueryParameter("peer_id", peerId.toString())
-                    .addQueryParameter("disable_mentions", "true")
+                    .addQueryParameter("peer_ids", peerId.toString())
+                    .addQueryParameter("disable_mentions", "1")
                     .apply {
                         if (message != null)
                             addQueryParameter("message", message)
@@ -37,10 +39,39 @@ class MessagesImpl(
                     .build()
             )
             .build()
-        val response = client
-            .newCall(request)
-            .executeAsync()
+            .executeAsync(client)
 
-        return vkHelper.readResponse(response, Int::class.java)
+        val result = vkHelper.readResponse(response, object : TypeReference<List<MessageSendResponse>>() {}).first()
+        if (result.error != null) throw RuntimeException(result.error)
+
+        return result.conversationMessageId!!
+    }
+
+    override suspend fun editMessage(
+        peerId: Long,
+        conversationMessageId: Long,
+        message: String?,
+        attachments: String?
+    ) {
+        val response = VkConst
+            .requestBuilder()
+            .url(
+                VkConst.urlBuilder("messages.edit")
+                    .addQueryParameter("peer_id", peerId.toString())
+                    .addQueryParameter("conversation_message_id", conversationMessageId.toString())
+                    .addQueryParameter("disable_mentions", "1")
+                    .addQueryParameter("keep_forward_messages", "1")
+                    .apply {
+                        if (message != null)
+                            addQueryParameter("message", message)
+                        if (attachments != null)
+                            addQueryParameter("attachment", attachments)
+                    }
+                    .build()
+            )
+            .build()
+            .executeAsync(client)
+
+        vkHelper.readResponse(response, Int::class.java)
     }
 }

@@ -5,7 +5,11 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import ru.spliterash.vkVideoUnlocker.common.exceptions.VkUnlockerException
-import ru.spliterash.vkVideoUnlocker.longpoll.message.*
+import ru.spliterash.vkVideoUnlocker.longpoll.message.RootMessage
+import ru.spliterash.vkVideoUnlocker.longpoll.message.hasPing
+import ru.spliterash.vkVideoUnlocker.longpoll.message.isGroupChat
+import ru.spliterash.vkVideoUnlocker.longpoll.message.isPersonalChat
+import ru.spliterash.vkVideoUnlocker.message.editableMessage.EditableMessage
 import ru.spliterash.vkVideoUnlocker.message.utils.MessageUtils
 import ru.spliterash.vkVideoUnlocker.messageChain.MessageHandler
 import ru.spliterash.vkVideoUnlocker.video.service.VideoReUploadService
@@ -18,7 +22,7 @@ class DefaultVideoChain(
     private val utils: MessageUtils,
     private val reUploadService: VideoReUploadService,
 ) : MessageHandler {
-    override suspend fun handle(message: RootMessage): Boolean = coroutineScope {
+    override suspend fun handle(message: RootMessage, editableMessage: EditableMessage): Boolean = coroutineScope {
         val video = try {
             utils.scanForVideoContent(message)
         } catch (ex: VkUnlockerException) {
@@ -27,18 +31,20 @@ class DefaultVideoChain(
         } ?: return@coroutineScope false
 
         val notifyJob = launch {
-            delay(3000)
-            message.reply(client, "Видео обрабатывается дольше чем обычно, я не завис")
-            delay(10000)
-            message.reply(client, "Да да, всё ещё обрабатывается, потерпи чуть чуть")
-            delay(20000)
-            message.reply(client, "Я не знаю что ты туда положил, но оно всё ещё обрабатывается")
+            delay(1000)
+            editableMessage.sendOrUpdate("Видео обрабатывается дольше чем обычно, я не завис")
+            delay(30000)
+            editableMessage.sendOrUpdate("Да да, всё ещё обрабатывается, потерпи чуть чуть")
+            delay(30000)
+            editableMessage.sendOrUpdate("Я не знаю что ты туда положил, но оно всё ещё обрабатывается")
+
+            var counter = 1;
             while (true) {
                 delay(30000)
-                message.reply(client, "Всё ещё в процессе")
+                editableMessage.sendOrUpdate("Всё ещё в процессе: ${counter++}")
             }
         }
-
+        delay(2000)
         val unlockedId: String = try {
             reUploadService.getUnlockedId(video).id
         } catch (ex: VkUnlockerException) {
@@ -52,7 +58,7 @@ class DefaultVideoChain(
                     "и я смогу разблокировать видосы автоматически, сразу как они прилетают в беседу"
         else null
 
-        message.reply(client, text, "video$unlockedId")
+        editableMessage.sendOrUpdate(text, "video$unlockedId")
 
         return@coroutineScope true
     }

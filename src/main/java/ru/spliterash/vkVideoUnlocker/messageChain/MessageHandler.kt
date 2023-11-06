@@ -1,6 +1,7 @@
 package ru.spliterash.vkVideoUnlocker.messageChain
 
 import ru.spliterash.vkVideoUnlocker.longpoll.message.RootMessage
+import ru.spliterash.vkVideoUnlocker.message.editableMessage.EditableMessage
 
 interface MessageHandler {
     val priority: Int
@@ -10,5 +11,5 @@ interface MessageHandler {
      * FALSE Не его остановка, спросим следующих
      * TRUE Да, это был его случай, дальше не кидаем
      */
-    suspend fun handle(message: RootMessage): Boolean
+    suspend fun handle(message: RootMessage, editableMessage: EditableMessage): Boolean
 }

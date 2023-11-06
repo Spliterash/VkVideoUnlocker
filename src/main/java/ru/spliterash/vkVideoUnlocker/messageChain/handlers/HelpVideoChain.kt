@@ -3,15 +3,11 @@ package ru.spliterash.vkVideoUnlocker.messageChain.handlers
 import jakarta.inject.Singleton
 import ru.spliterash.vkVideoUnlocker.longpoll.message.RootMessage
 import ru.spliterash.vkVideoUnlocker.longpoll.message.isGroupChat
-import ru.spliterash.vkVideoUnlocker.longpoll.message.reply
+import ru.spliterash.vkVideoUnlocker.message.editableMessage.EditableMessage
 import ru.spliterash.vkVideoUnlocker.messageChain.ActivationMessageHandler
-import ru.spliterash.vkVideoUnlocker.vk.actor.GroupUser
-import ru.spliterash.vkVideoUnlocker.vk.api.VkApi
 
 @Singleton
-class HelpVideoChain(
-    @GroupUser private val client: VkApi
-) : ActivationMessageHandler(
+class HelpVideoChain : ActivationMessageHandler(
     "помощь",
     "начать",
     "/начать",
@@ -22,12 +18,13 @@ class HelpVideoChain(
     ".",
     "как тобой пользоваться"
 ) {
-    override suspend fun handleAfterCheck(message: RootMessage) {
+    override suspend fun handleAfterCheck(message: RootMessage, editableMessage: EditableMessage): Boolean {
         if (message.isGroupChat())
-            return
+            return false
+        if (message.attachments.isNotEmpty())
+            return false
 
-        message.reply(
-            client,
+        editableMessage.sendOrUpdate(
             "Привет. Чтобы разблокировать видео, просто перешли мне что то, что его содержит. " +
                     "Например ты можешь отправить мне пост из ленты, комментарий из поста, переслать сообщение которое содержит видео, и так далее." +
                     "Если видео уже открытое, то я скажу тебе об этом, но только в личных сообщениях, чтобы не засорять груповые чаты.\n\n" +
@@ -37,5 +34,7 @@ class HelpVideoChain(
                     "* Скачивание видео: перешли мне видео как обычно и напиши в сообщении 'скачать'(без кавычек)\n" +
                     "* Сохранение историй: перешли мне историю на нужном слайде"
         )
+
+        return true;
     }
 }

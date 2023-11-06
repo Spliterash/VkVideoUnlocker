@@ -107,6 +107,7 @@ class VideoService(
                 workUserGroupService,
             )
         } catch (_: VideoLockedException) {
+        } catch (_: CantSeeStoryException) {
         }
 
         val ownerId = holder.ownerId

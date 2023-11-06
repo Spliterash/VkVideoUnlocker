@@ -14,8 +14,8 @@ import ru.spliterash.vkVideoUnlocker.common.exceptions.VkUnlockerException
 import ru.spliterash.vkVideoUnlocker.common.okHttp.OkHttpFactory
 import ru.spliterash.vkVideoUnlocker.common.okHttp.executeAsync
 import ru.spliterash.vkVideoUnlocker.longpoll.message.MessageNew
-import ru.spliterash.vkVideoUnlocker.longpoll.message.reply
 import ru.spliterash.vkVideoUnlocker.longpoll.vkModels.LongPollResponse
+import ru.spliterash.vkVideoUnlocker.message.editableMessage.EditableMessageService
 import ru.spliterash.vkVideoUnlocker.vk.actor.GroupUser
 import ru.spliterash.vkVideoUnlocker.vk.api.VkApi
 import ru.spliterash.vkVideoUnlocker.vk.exceptions.VkApiException
@@ -26,6 +26,7 @@ class LongPollService(
     @GroupUser private val vkApi: VkApi,
     private val mapper: ObjectMapper,
     private val messageChainService: MessageChainService,
+    private val editableMessageService: EditableMessageService,
     factory: OkHttpFactory
 ) : ApplicationEventListener<StartupEvent> {
     private val client = factory.create()
@@ -68,20 +69,19 @@ class LongPollService(
 
                         val messageNew = mapper.convertValue<MessageNew>(update.body)
                         val message = messageNew.message
-
+                        val editableMessage = editableMessageService.create(message, vkApi)
                         supervisorScope.launch {
                             try {
-                                messageChainService.proceedMessage(message)
+                                messageChainService.proceedMessage(message, editableMessage)
 
                             } catch (ex: VkUnlockerException) {
                                 if (ex is VkApiException)
                                     ex.printStackTrace()
                                 val info = ex.messageForUser()
-                                message.reply(vkApi, info)
+                                editableMessage.sendOrUpdate(info)
                             } catch (ex: Exception) {
                                 ex.printStackTrace()
-                                message.reply(
-                                    vkApi,
+                                editableMessage.sendOrUpdate(
                                     "Произошла непредвиденная ошибка(${ex.javaClass.simpleName}): ${ex.message}"
                                 )
                             }

@@ -1,4 +1,4 @@
-package ru.spliterash.vkVideoUnlocker.message.vkModels
+package ru.spliterash.vkVideoUnlocker.message.vkModels.request
 
 import com.fasterxml.jackson.annotation.JsonProperty
 
@@ -7,10 +7,10 @@ import com.fasterxml.jackson.annotation.JsonProperty
  */
 data class Forward(
     @JsonProperty("peer_id")
-    val peerId: Int,
+    val peerId: Long,
 
     @JsonProperty("conversation_message_ids")
-    val conversationMessageIds: List<Int>,
+    val conversationMessageIds: List<Long>,
     @JsonProperty("is_reply")
     val isReply: Boolean,
 )

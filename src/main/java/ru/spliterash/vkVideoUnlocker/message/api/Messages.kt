@@ -2,9 +2,16 @@ package ru.spliterash.vkVideoUnlocker.message.api
 
 interface Messages {
     suspend fun sendMessage(
-        peerId: Int,
+        peerId: Long,
         message: String?,
-        replyTo: Int? = null,
+        replyTo: Long? = null,
         attachments: String? = null
-    ): Int
+    ): Long
+
+    suspend fun editMessage(
+        peerId: Long,
+        conversationMessageId: Long,
+        message: String?,
+        attachments: String? = null
+    )
 }
