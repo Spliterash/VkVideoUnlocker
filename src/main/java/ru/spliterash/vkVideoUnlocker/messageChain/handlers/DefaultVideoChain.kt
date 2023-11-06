@@ -31,11 +31,11 @@ class DefaultVideoChain(
         } ?: return@coroutineScope false
 
         val notifyJob = launch {
-            delay(1000)
+            delay(3000)
             editableMessage.sendOrUpdate("Видео обрабатывается дольше чем обычно, я не завис")
-            delay(30000)
+            delay(15000)
             editableMessage.sendOrUpdate("Да да, всё ещё обрабатывается, потерпи чуть чуть")
-            delay(30000)
+            delay(20000)
             editableMessage.sendOrUpdate("Я не знаю что ты туда положил, но оно всё ещё обрабатывается")
 
             var counter = 1;
@@ -44,7 +44,6 @@ class DefaultVideoChain(
                 editableMessage.sendOrUpdate("Всё ещё в процессе: ${counter++}")
             }
         }
-        delay(2000)
         val unlockedId: String = try {
             reUploadService.getUnlockedId(video).id
         } catch (ex: VkUnlockerException) {
