@@ -24,7 +24,6 @@ class VideoController(
     private val videoService: VideoService,
     private val reUploadService: VideoReUploadService,
     private val downloadUrlSupplier: DownloadUrlSupplier,
-    @Value("\${vk-unlocker.domain}") private val domain: String
 ) {
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val cache = Caffeine
