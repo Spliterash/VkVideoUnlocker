@@ -1,7 +1,6 @@
 package ru.spliterash.vkVideoUnlocker.video.controller
 
 import com.github.benmanes.caffeine.cache.Caffeine
-import io.micronaut.context.annotation.Value
 import io.micronaut.http.HttpResponse
 import io.micronaut.http.HttpStatus
 import io.micronaut.http.MediaType
@@ -64,7 +63,7 @@ class VideoController(
     suspend fun info(
         @PathVariable("attachmentId") attachmentId: String,
     ): VideoResponse {
-        val accessor = cache.get(attachmentId).await()
+        val accessor = cache.get(attachmentId.removeSuffix(".mp4")).await()
         val url = downloadUrlSupplier.downloadUrl(attachmentId)
 
         return VideoResponse(

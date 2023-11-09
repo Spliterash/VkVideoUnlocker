@@ -9,6 +9,6 @@ class DownloadUrlSupplier(
     @Value("\${vk-unlocker.domain}") private val domain: String,
 ) {
     fun downloadUrl(attachmentId: String): URL {
-        return URL(domain + Routes.DOWNLOAD.replace("{attachmentId}", attachmentId))
+        return URL(domain + Routes.DOWNLOAD.replace("{attachmentId}", attachmentId) + ".mp4")
     }
 }
