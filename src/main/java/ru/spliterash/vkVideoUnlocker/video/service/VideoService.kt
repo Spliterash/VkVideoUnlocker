@@ -85,10 +85,11 @@ class VideoService(
         if (story.isExpired)
             throw StoryExpiredException()
 
-        return if (story.canSee!!)
-            FullStoryHolder(story)
+        // Vk moment. Какого то фига вк отдаёт кривые истории группе, которые нельзя скачать, так что перезапросим их от пользователя
+        return/* if (story.canSee!!)
+            GroupStoryHolder(story)
         else
-            wrapStoryId(story.normalId())
+           */ wrapStoryId(story.normalId())
     }
 
     /**
@@ -233,7 +234,8 @@ class VideoService(
         }
     }
 
-    private inner class FullStoryHolder(
+    // Тип держит историю которая пришла в личку группы
+    private inner class GroupStoryHolder(
         val story: VkStory
     ) : AbstractStoryHolder(story.normalId()) {
 
