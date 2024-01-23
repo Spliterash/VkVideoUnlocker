@@ -5,7 +5,7 @@ import ru.spliterash.vkVideoUnlocker.longpoll.message.attachments.AttachmentCont
 interface Message : AttachmentContainer {
     val attachments: List<Attachment>
     val fwdMessages: List<FwdMessage>
-    val replyMessage: FwdMessage?
+    val replyMessage: ReplyMessage?
     val text: String?
 
     override fun containers(): List<AttachmentContainer> {

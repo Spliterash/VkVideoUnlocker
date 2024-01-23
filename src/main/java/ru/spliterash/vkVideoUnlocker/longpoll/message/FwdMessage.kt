@@ -6,5 +6,5 @@ data class FwdMessage(
     @JsonProperty("text") override val text: String?,
     @JsonProperty("attachments") override val attachments: List<Attachment>,
     @JsonProperty("fwd_messages") override val fwdMessages: List<FwdMessage> = listOf(),
-    @JsonProperty("reply_message") override val replyMessage: FwdMessage?,
+    @JsonProperty("reply_message") override val replyMessage: ReplyMessage?,
 ) : Message

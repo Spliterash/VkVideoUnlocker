@@ -1,27 +1,42 @@
 package ru.spliterash.vkVideoUnlocker.message.utils
 
 import jakarta.inject.Singleton
+import ru.spliterash.vkVideoUnlocker.longpoll.message.ReplyMessage
 import ru.spliterash.vkVideoUnlocker.longpoll.message.RootMessage
+import ru.spliterash.vkVideoUnlocker.longpoll.message.attachments.AttachmentContainer
+import ru.spliterash.vkVideoUnlocker.longpoll.message.hasPing
+import ru.spliterash.vkVideoUnlocker.longpoll.message.isPersonalChat
 import ru.spliterash.vkVideoUnlocker.story.vkModels.VkStory
 import ru.spliterash.vkVideoUnlocker.video.holder.VideoContentHolder
 import ru.spliterash.vkVideoUnlocker.video.service.VideoService
 import ru.spliterash.vkVideoUnlocker.video.vkModels.VkVideo
 import ru.spliterash.vkVideoUnlocker.vk.AttachmentScanner
+import ru.spliterash.vkVideoUnlocker.vk.actor.GroupUser
+import ru.spliterash.vkVideoUnlocker.vk.api.VkApi
+import java.util.function.Predicate
 import java.util.regex.Pattern
 
 @Singleton
 class MessageUtils(
+    @GroupUser private val groupUser: VkApi,
     private val attachmentScanner: AttachmentScanner,
     private val videoService: VideoService,
 ) {
     private val vkUrlPattern = Pattern.compile("(?:https?://)?vk\\.com/(?<attachment>(?:video|wall|story)-?\\d+_\\d+)")
     suspend fun scanForVideoContent(root: RootMessage): VideoContentHolder? {
+        val containerPredicate: Predicate<AttachmentContainer> =
+            if (root.isPersonalChat() || root.hasPing(groupUser))
+                Predicate { true }
+            else
+                Predicate { it !is ReplyMessage }
+
         val attachmentContent = attachmentScanner.scanForAttachment(
             root,
             listOf(
                 AttachmentScanner.Checker { it.video },
                 AttachmentScanner.Checker { it.story }
-            )
+            ),
+            containerPredicate
         )
         if (attachmentContent != null) {
             return when (attachmentContent) {
