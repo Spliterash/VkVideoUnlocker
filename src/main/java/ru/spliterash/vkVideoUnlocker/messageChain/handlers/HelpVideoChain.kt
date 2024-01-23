@@ -23,6 +23,8 @@ class HelpVideoChain : ActivationMessageHandler(
             return false
         if (message.attachments.isNotEmpty())
             return false
+        if (message.containers().isNotEmpty())
+            return false
 
         editableMessage.sendOrUpdate(
             "Привет. Чтобы разблокировать видео, просто перешли мне что то, что его содержит. " +
