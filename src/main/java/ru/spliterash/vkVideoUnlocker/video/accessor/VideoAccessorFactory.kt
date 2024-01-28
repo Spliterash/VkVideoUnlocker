@@ -10,7 +10,7 @@ class VideoAccessorFactory(
 ) {
     private val client = factory.create().build()
 
-    fun create(video: VkVideo): VideoAccessor {
-        return VideoAccessorImpl(client, video)
+    fun create(video: VkVideo): AdvancedVideoAccessor {
+        return VkVideoAccessorImpl(client, video)
     }
 }

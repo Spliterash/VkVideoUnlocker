@@ -15,7 +15,7 @@ import ru.spliterash.vkVideoUnlocker.video.holder.VideoContentHolder
 import ru.spliterash.vkVideoUnlocker.video.holder.VideoHolder
 import ru.spliterash.vkVideoUnlocker.video.vkModels.VkVideo
 import ru.spliterash.vkVideoUnlocker.video.vkModels.normalId
-import ru.spliterash.vkVideoUnlocker.vk.AttachmentScanner
+import ru.spliterash.vkVideoUnlocker.vk.MessageScanner
 import ru.spliterash.vkVideoUnlocker.vk.VkConst
 import ru.spliterash.vkVideoUnlocker.vk.actor.types.PokeUser
 import ru.spliterash.vkVideoUnlocker.vk.actor.types.WorkUser
@@ -23,7 +23,7 @@ import ru.spliterash.vkVideoUnlocker.vk.api.VkApi
 
 @Singleton
 class VideoService(
-    private val attachmentScanner: AttachmentScanner,
+    private val messageScanner: MessageScanner,
     private val workUserGroupService: WorkUserGroupService,
     private val videoAccessorFactory: VideoAccessorFactory,
     @WorkUser private val workUser: VkApi,
@@ -69,7 +69,7 @@ class VideoService(
 
     suspend fun wrapWallId(wallId: String): VideoContentHolder {
         val wall = workUser.walls.getById(wallId)
-        val video = attachmentScanner.scanForAttachment(wall) { it.video }
+        val video = messageScanner.scanForAttachment(wall) { it.video }
         if (video != null)
             return FullVideoHolder(video) // Пользователь получает полное видео если запросил стену
         else

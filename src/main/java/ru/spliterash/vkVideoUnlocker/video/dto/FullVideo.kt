@@ -2,6 +2,7 @@ package ru.spliterash.vkVideoUnlocker.video.dto
 
 import ru.spliterash.vkVideoUnlocker.group.WorkUserGroupService
 import ru.spliterash.vkVideoUnlocker.group.dto.GroupStatus
+import ru.spliterash.vkVideoUnlocker.video.accessor.AdvancedVideoAccessor
 import ru.spliterash.vkVideoUnlocker.video.accessor.VideoAccessor
 import ru.spliterash.vkVideoUnlocker.video.accessor.VideoAccessorFactory
 import ru.spliterash.vkVideoUnlocker.video.vkModels.VkVideo
@@ -15,7 +16,7 @@ class FullVideo(
     private val factory: VideoAccessorFactory,
     private val groupService: WorkUserGroupService,
 ) {
-    private var accessor: VideoAccessor? = null
+    private var accessor: AdvancedVideoAccessor? = null
 
     suspend fun status(): GroupStatus {
         if (video.ownerId > 0)
@@ -30,7 +31,7 @@ class FullVideo(
         return status() != GroupStatus.PUBLIC
     }
 
-    fun toAccessor(): VideoAccessor {
+    fun toAccessor(): AdvancedVideoAccessor {
         return accessor ?: factory.create(video).also {
             accessor = it
         }

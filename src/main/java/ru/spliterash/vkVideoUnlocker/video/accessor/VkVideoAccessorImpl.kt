@@ -8,10 +8,10 @@ import ru.spliterash.vkVideoUnlocker.video.vkModels.VkVideo
 import java.net.URL
 
 
-class VideoAccessorImpl(
+class VkVideoAccessorImpl(
     private val client: OkHttpClient,
     private val video: VkVideo,
-) : VideoAccessor {
+) : VideoAccessor, AdvancedVideoAccessor {
     override val maxQuality: Int
     override val maxQualityUrl: URL
     override fun preview(): URL = video.preview()
@@ -34,6 +34,8 @@ class VideoAccessorImpl(
 
         return response.headers["Content-Length"]?.toLong() ?: -1L
     }
+
+    override suspend fun load() = load(maxQuality)
 
     override suspend fun load(quality: Int): VideoAccessor.Info {
         val request = builder(video.qualityUrl(quality))
@@ -100,6 +102,6 @@ class VideoAccessorImpl(
     }
 
     companion object {
-        private val log = LogFactory.getLog(VideoAccessorImpl::class.java)
+        private val log = LogFactory.getLog(VkVideoAccessorImpl::class.java)
     }
 }

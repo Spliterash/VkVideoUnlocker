@@ -2,12 +2,28 @@ package ru.spliterash.vkVideoUnlocker.vk
 
 import jakarta.inject.Singleton
 import ru.spliterash.vkVideoUnlocker.longpoll.message.Attachment
+import ru.spliterash.vkVideoUnlocker.longpoll.message.Message
 import ru.spliterash.vkVideoUnlocker.longpoll.message.attachments.AttachmentContainer
 import ru.spliterash.vkVideoUnlocker.longpoll.message.attachments.AttachmentContent
 import java.util.function.Predicate
 
 @Singleton
-class AttachmentScanner {
+class MessageScanner {
+    fun <T> scanForText(message: Message, func: (String) -> T?): T? {
+        val text = message.text
+        if (text != null) {
+            val result = func(text)
+            if (result != null) return result
+        }
+
+        for (fwdMessage in message.fwdMessages) {
+            val result = scanForText(fwdMessage, func)
+            if (result != null) return result
+        }
+
+        return null
+    }
+
     fun <T : AttachmentContent> scanForAttachment(
         root: AttachmentContainer,
         checker: Checker<T>,

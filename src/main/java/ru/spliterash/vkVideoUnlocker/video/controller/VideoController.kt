@@ -9,6 +9,7 @@ import io.micronaut.http.server.types.files.StreamedFile
 import kotlinx.coroutines.*
 import ru.spliterash.vkVideoUnlocker.video.DownloadUrlSupplier
 import ru.spliterash.vkVideoUnlocker.video.Routes
+import ru.spliterash.vkVideoUnlocker.video.accessor.AdvancedVideoAccessor
 import ru.spliterash.vkVideoUnlocker.video.accessor.VideoAccessor
 import ru.spliterash.vkVideoUnlocker.video.controller.response.VideoResponse
 import ru.spliterash.vkVideoUnlocker.video.controller.response.VideoUnlockResponse
@@ -28,7 +29,7 @@ class VideoController(
     private val cache = Caffeine
         .newBuilder()
         .expireAfterWrite(30, TimeUnit.MINUTES)
-        .build<String, Deferred<VideoAccessor>> {
+        .build<String, Deferred<AdvancedVideoAccessor>> {
             scope.async {
                 load(it).toAccessor()
             }
