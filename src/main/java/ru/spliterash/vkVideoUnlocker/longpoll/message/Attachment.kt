@@ -11,7 +11,7 @@ data class Attachment(
     @JsonProperty("wall") val wall: SomethingWithAttachments?,
     @JsonProperty("wall_reply") val wallReply: SomethingWithAttachments?,
     @JsonProperty("story") val story: VkStory?,
-    @JsonProperty("type") val type: Type
+    @JsonProperty("type") val type: Type?
 ) {
     enum class Type {
         @JsonProperty("video")

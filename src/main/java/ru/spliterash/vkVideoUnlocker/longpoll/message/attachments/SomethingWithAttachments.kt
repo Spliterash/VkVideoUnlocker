@@ -5,7 +5,7 @@ import ru.spliterash.vkVideoUnlocker.longpoll.message.Attachment
 
 data class SomethingWithAttachments(
     @JsonProperty("attachments")
-    val attachments: List<Attachment>
+    val attachments: List<Attachment> = listOf()
 ) : AttachmentContainer, AttachmentContent {
     override fun containers(): List<AttachmentContainer> = listOf()
 
