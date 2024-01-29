@@ -15,6 +15,11 @@ class MessageScanner {
             val result = func(text)
             if (result != null) return result
         }
+        for (attachment in message.attachments) {
+            val link = attachment.link ?: continue
+            val result = func(link.url)
+            if (result != null) return result
+        }
 
         for (fwdMessage in message.fwdMessages) {
             val result = scanForText(fwdMessage, func)

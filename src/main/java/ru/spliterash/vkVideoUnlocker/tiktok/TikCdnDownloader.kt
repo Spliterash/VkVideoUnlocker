@@ -10,7 +10,7 @@ import ru.spliterash.vkVideoUnlocker.video.accessor.UrlVideoAccessorImpl
 import java.net.URL
 import java.util.regex.Pattern
 
-@Singleton
+//@Singleton
 class TikCdnDownloader(
     okHttpFactory: OkHttpFactory
 ) : TiktokDownloader {

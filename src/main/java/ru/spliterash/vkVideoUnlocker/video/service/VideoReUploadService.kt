@@ -1,8 +1,9 @@
 package ru.spliterash.vkVideoUnlocker.video.service
 
 import jakarta.inject.Singleton
-import kotlinx.coroutines.*
-import ru.spliterash.vkVideoUnlocker.group.dto.GroupStatus
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.async
+import ru.spliterash.vkVideoUnlocker.common.CoroutineHelper
 import ru.spliterash.vkVideoUnlocker.video.entity.VideoEntity
 import ru.spliterash.vkVideoUnlocker.video.exceptions.SelfVideoException
 import ru.spliterash.vkVideoUnlocker.video.exceptions.VideoOpenException
@@ -24,7 +25,7 @@ class VideoReUploadService(
     @GroupUser private val groupUser: VkApi,
 ) {
     private val inProgress = Collections.synchronizedMap(hashMapOf<String, Deferred<UnlockResult>>())
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val scope = CoroutineHelper.scope
     suspend fun getUnlockedId(holder: VideoContentHolder): UnlockResult {
         return inProgress.computeIfAbsent(holder.attachmentId) {
             scope.async {

@@ -7,6 +7,7 @@ import io.micronaut.http.MediaType
 import io.micronaut.http.annotation.*
 import io.micronaut.http.server.types.files.StreamedFile
 import kotlinx.coroutines.*
+import ru.spliterash.vkVideoUnlocker.common.CoroutineHelper
 import ru.spliterash.vkVideoUnlocker.video.DownloadUrlSupplier
 import ru.spliterash.vkVideoUnlocker.video.Routes
 import ru.spliterash.vkVideoUnlocker.video.accessor.AdvancedVideoAccessor
@@ -25,7 +26,7 @@ class VideoController(
     private val reUploadService: VideoReUploadService,
     private val downloadUrlSupplier: DownloadUrlSupplier,
 ) {
-    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private val scope = CoroutineHelper.scope
     private val cache = Caffeine
         .newBuilder()
         .expireAfterWrite(30, TimeUnit.MINUTES)

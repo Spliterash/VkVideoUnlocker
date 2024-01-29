@@ -15,9 +15,9 @@ import ru.spliterash.vkVideoUnlocker.video.exceptions.VideoNotFoundException
 import ru.spliterash.vkVideoUnlocker.video.vkModels.VkSaveResponse
 import ru.spliterash.vkVideoUnlocker.video.vkModels.VkVideo
 import ru.spliterash.vkVideoUnlocker.video.vkModels.VkVideoUploadResponse
+import ru.spliterash.vkVideoUnlocker.vk.VkConst
 import ru.spliterash.vkVideoUnlocker.vk.VkHelper
 import ru.spliterash.vkVideoUnlocker.vk.readResponse
-import ru.spliterash.vkVideoUnlocker.vk.VkConst
 import ru.spliterash.vkVideoUnlocker.vk.vkModels.VkItemsResponse
 
 @Prototype
@@ -51,7 +51,14 @@ class VideosImpl(
 
         return video
     }
-    override suspend fun upload(groupId: Int, name: String, private: Boolean, accessor: VideoAccessor): String {
+
+    override suspend fun upload(
+        groupId: Int,
+        name: String,
+        private: Boolean,
+        accessor: VideoAccessor,
+        progressMeter: ProgressMeter
+    ): String {
         val url = VkConst.requestBuilder()
             .get()
             .url(
@@ -82,8 +89,12 @@ class VideosImpl(
                             info.stream.use { `in` ->
                                 val buffer = ByteArray(8192)
                                 var bytesRead: Int
+                                var completed = 0L
                                 while (`in`.read(buffer).also { bytesRead = it } != -1) {
                                     sink.write(buffer, 0, bytesRead)
+                                    completed += bytesRead
+
+                                    progressMeter.onProgress(completed, info.contentLength)
                                 }
                             }
                         }

@@ -16,6 +16,7 @@ interface Videos {
         groupId: Int,
         name: String,
         private: Boolean,
-        accessor: VideoAccessor
+        accessor: VideoAccessor,
+        progressMeter: ProgressMeter = ProgressMeter { _, _ -> }
     ): String
 }

@@ -10,6 +10,7 @@ import jakarta.inject.Singleton
 import kotlinx.coroutines.*
 import okhttp3.Request
 import org.apache.commons.logging.LogFactory
+import ru.spliterash.vkVideoUnlocker.common.CoroutineHelper
 import ru.spliterash.vkVideoUnlocker.common.exceptions.VkUnlockerException
 import ru.spliterash.vkVideoUnlocker.common.okHttp.OkHttpFactory
 import ru.spliterash.vkVideoUnlocker.common.okHttp.executeAsync
@@ -34,11 +35,10 @@ class LongPollService(
         .build()
     private var job: Job? = null
     override fun onApplicationEvent(event: StartupEvent) {
-        job = CoroutineScope(Dispatchers.IO).launch { start() }
+        job = CoroutineHelper.scope.launch { start() }
     }
 
     private suspend fun start() = coroutineScope {
-        val supervisorScope = CoroutineScope(coroutineContext + SupervisorJob())
         log.info("vk longpoll started")
         while (true) {
             try {
@@ -70,7 +70,7 @@ class LongPollService(
                         val messageNew = mapper.convertValue<MessageNew>(update.body)
                         val message = messageNew.message
                         val editableMessage = editableMessageService.create(message, vkApi)
-                        supervisorScope.launch {
+                        CoroutineHelper.scope.launch {
                             try {
                                 messageChainService.proceedMessage(message, editableMessage)
 
