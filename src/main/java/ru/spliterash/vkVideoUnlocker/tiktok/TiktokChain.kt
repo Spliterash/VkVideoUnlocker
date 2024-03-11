@@ -17,7 +17,7 @@ class TiktokChain(
     private val tiktokService: TiktokService,
     private val messageScanner: MessageScanner,
 ) : MessageHandler {
-    private val pattern = Pattern.compile("https?://(?:\\w+)?\\.tiktok\\.com/(?:@[\\w.]+/video/(?:(?<id>\\d+))|\\w+)")
+    private val pattern = Pattern.compile("https?://(?:\\w+\\.)?tiktok\\.com/(?:@[\\w.]+/video/(?:(?<id>\\d+))|\\w+)")
     override suspend fun handle(message: RootMessage, editableMessage: EditableMessage): Boolean = coroutineScope {
         val videoUrl = messageScanner.scanForText(message) {
             val matcher = pattern.matcher(it)
