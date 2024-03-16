@@ -1,5 +1,6 @@
 package ru.spliterash.vkVideoUnlocker.group
 
+import io.micronaut.context.annotation.Value
 import jakarta.inject.Singleton
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -13,7 +14,9 @@ import ru.spliterash.vkVideoUnlocker.vk.api.VkApi
 
 @Singleton
 class WorkUserGroupService(
-    @WorkUser private val user: VkApi
+    @WorkUser private val user: VkApi,
+    @Value("\${vk-unlocker.private-groups:false}") private val privateGroupWork: Boolean
+
 ) {
     private val groups = hashMapOf<Int, GroupInfo>()
     private val lock = Mutex()
@@ -46,6 +49,7 @@ class WorkUserGroupService(
         try {
             when (actualInfo.groupStatus) {
                 GroupStatus.CLOSE -> {
+                    if (!privateGroupWork) return GroupStatus.CLOSE
                     when (actualInfo.memberStatus) {
                         MemberStatus.NO -> {
                             user.groups.join(groupId)

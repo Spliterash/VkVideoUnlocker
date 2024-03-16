@@ -1,10 +1,12 @@
 package ru.spliterash.vkVideoUnlocker.video.service
 
+import io.micronaut.context.annotation.Value
 import jakarta.inject.Singleton
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
 import ru.spliterash.vkVideoUnlocker.common.CoroutineHelper
 import ru.spliterash.vkVideoUnlocker.video.entity.VideoEntity
+import ru.spliterash.vkVideoUnlocker.video.exceptions.PrivateVideoDisabledException
 import ru.spliterash.vkVideoUnlocker.video.exceptions.SelfVideoException
 import ru.spliterash.vkVideoUnlocker.video.exceptions.VideoOpenException
 import ru.spliterash.vkVideoUnlocker.video.holder.VideoContentHolder
@@ -23,6 +25,7 @@ class VideoReUploadService(
     private val videoRepository: VideoRepository,
     @WorkUser private val workUser: VkApi,
     @GroupUser private val groupUser: VkApi,
+    @Value("\${vk-unlocker.private-groups:false}") private val privateGroupWork: Boolean
 ) {
     private val inProgress = Collections.synchronizedMap(hashMapOf<String, Deferred<UnlockResult>>())
     private val scope = CoroutineHelper.scope
@@ -71,8 +74,10 @@ class VideoReUploadService(
         val fullVideo = holder.fullVideo()
 
         val originalAttachmentId = holder.attachmentId
-        val videoAccessor = fullVideo.toAccessor()
         val private = fullVideo.shouldBeLocked()
+        if (private && !privateGroupWork) throw PrivateVideoDisabledException()
+
+        val videoAccessor = fullVideo.toAccessor()
 
         val reUploadedId = workUser.videos.upload(
             groupUser.id,

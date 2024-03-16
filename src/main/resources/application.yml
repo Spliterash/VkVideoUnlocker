@@ -25,3 +25,4 @@ vk-unlocker:
   # Пользователь для "тыканья" видосов на наличие блокировки
   poke-user:
     token: poke_user_token
+  private-groups: false

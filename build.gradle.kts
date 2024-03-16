@@ -1,9 +1,9 @@
 plugins {
 //    `java-library`
-    kotlin("jvm") version "1.9.0"
-    kotlin("kapt") version "1.9.0"
+    kotlin("jvm") version "1.9.23"
+    kotlin("kapt") version "1.9.23"
     id("com.github.johnrengelman.shadow") version "8.1.1"
-    id("io.micronaut.minimal.application") version "4.0.2"
+    id("io.micronaut.minimal.application") version "4.3.4"
 }
 
 group = "ru.spliterash"
