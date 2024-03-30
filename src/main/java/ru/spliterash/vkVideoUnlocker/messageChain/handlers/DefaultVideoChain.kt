@@ -12,6 +12,8 @@ import ru.spliterash.vkVideoUnlocker.longpoll.message.isPersonalChat
 import ru.spliterash.vkVideoUnlocker.message.editableMessage.EditableMessage
 import ru.spliterash.vkVideoUnlocker.message.utils.MessageUtils
 import ru.spliterash.vkVideoUnlocker.messageChain.MessageHandler
+import ru.spliterash.vkVideoUnlocker.video.DownloadUrlSupplier
+import ru.spliterash.vkVideoUnlocker.video.exceptions.PrivateVideoDisabledException
 import ru.spliterash.vkVideoUnlocker.video.service.VideoReUploadService
 import ru.spliterash.vkVideoUnlocker.vk.actor.GroupUser
 import ru.spliterash.vkVideoUnlocker.vk.api.VkApi
@@ -21,6 +23,7 @@ class DefaultVideoChain(
     @GroupUser private val client: VkApi,
     private val utils: MessageUtils,
     private val reUploadService: VideoReUploadService,
+    private val downloadUrlSupplier: DownloadUrlSupplier,
 ) : MessageHandler {
     override suspend fun handle(message: RootMessage, editableMessage: EditableMessage): Boolean = coroutineScope {
         val video = try {
@@ -46,6 +49,10 @@ class DefaultVideoChain(
         }
         val unlockedId: String = try {
             reUploadService.getUnlockedId(video).id
+        } catch (ex: PrivateVideoDisabledException) {
+            val url = downloadUrlSupplier.downloadUrl(video.attachmentId)
+            editableMessage.sendOrUpdate("Перезалив видео из закрытых групп временно отключён, но если очень хочется посмотреть, то вот\n$url")
+            return@coroutineScope true
         } catch (ex: VkUnlockerException) {
             handleException(ex, message)
             return@coroutineScope true
