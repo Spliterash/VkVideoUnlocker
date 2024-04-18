@@ -37,8 +37,6 @@ class VideoService(
             throw VideoPrivateException()
         if (video.platform != null)
             throw VideoFromAnotherPlatformException()
-        if (video.duration > 60 * 5)
-            throw VideoTooLongException()
     }
 
     fun wrapVideoId(videoId: String): VideoHolder {

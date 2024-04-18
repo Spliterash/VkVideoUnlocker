@@ -9,6 +9,7 @@ import ru.spliterash.vkVideoUnlocker.video.entity.VideoEntity
 import ru.spliterash.vkVideoUnlocker.video.exceptions.PrivateVideoDisabledException
 import ru.spliterash.vkVideoUnlocker.video.exceptions.SelfVideoException
 import ru.spliterash.vkVideoUnlocker.video.exceptions.VideoOpenException
+import ru.spliterash.vkVideoUnlocker.video.exceptions.VideoTooLongException
 import ru.spliterash.vkVideoUnlocker.video.holder.VideoContentHolder
 import ru.spliterash.vkVideoUnlocker.video.holder.VideoHolder
 import ru.spliterash.vkVideoUnlocker.video.repository.VideoRepository
@@ -76,6 +77,7 @@ class VideoReUploadService(
         val originalAttachmentId = holder.attachmentId
         val private = fullVideo.shouldBeLocked()
         if (private && !privateGroupWork) throw PrivateVideoDisabledException()
+        if (fullVideo.video.duration > 60 * 5) throw VideoTooLongException()
 
         val videoAccessor = fullVideo.toAccessor()
 

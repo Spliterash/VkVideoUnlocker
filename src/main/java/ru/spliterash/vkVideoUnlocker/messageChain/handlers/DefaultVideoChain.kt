@@ -14,6 +14,7 @@ import ru.spliterash.vkVideoUnlocker.message.utils.MessageUtils
 import ru.spliterash.vkVideoUnlocker.messageChain.MessageHandler
 import ru.spliterash.vkVideoUnlocker.video.DownloadUrlSupplier
 import ru.spliterash.vkVideoUnlocker.video.exceptions.PrivateVideoDisabledException
+import ru.spliterash.vkVideoUnlocker.video.exceptions.VideoTooLongException
 import ru.spliterash.vkVideoUnlocker.video.service.VideoReUploadService
 import ru.spliterash.vkVideoUnlocker.vk.actor.GroupUser
 import ru.spliterash.vkVideoUnlocker.vk.api.VkApi
@@ -52,6 +53,10 @@ class DefaultVideoChain(
         } catch (ex: PrivateVideoDisabledException) {
             val url = downloadUrlSupplier.downloadUrl(video.attachmentId)
             editableMessage.sendOrUpdate("Перезалив видео из закрытых групп временно отключён, но если очень хочется посмотреть, то вот\n$url")
+            return@coroutineScope true
+        } catch (ex: VideoTooLongException) {
+            val url = downloadUrlSupplier.downloadUrl(video.attachmentId)
+            editableMessage.sendOrUpdate("Видео длиннее 5 минут, поэтому перезаливать его как отдельное мы не будем. Но вы можете посмотреть его по ссылке:\n$url")
             return@coroutineScope true
         } catch (ex: VkUnlockerException) {
             handleException(ex, message)
