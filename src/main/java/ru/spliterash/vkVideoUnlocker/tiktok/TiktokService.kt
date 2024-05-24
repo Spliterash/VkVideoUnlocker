@@ -4,12 +4,12 @@ import jakarta.inject.Singleton
 import ru.spliterash.vkVideoUnlocker.video.accessor.VideoAccessor
 import ru.spliterash.vkVideoUnlocker.video.api.ProgressMeter
 import ru.spliterash.vkVideoUnlocker.vk.actor.GroupUser
-import ru.spliterash.vkVideoUnlocker.vk.actor.types.WorkUser
+import ru.spliterash.vkVideoUnlocker.vk.actor.types.UploadUser
 import ru.spliterash.vkVideoUnlocker.vk.api.VkApi
 
 @Singleton
 class TiktokService(
-    @WorkUser private val workUser: VkApi,
+    @UploadUser private val uploadUser: VkApi,
     @GroupUser private val groupUser: VkApi,
     private val tiktokDownloader: TiktokDownloader,
     private val tiktokVideoRepository: TiktokVideoRepository
@@ -27,7 +27,7 @@ class TiktokService(
     }
 
     private suspend fun reUpload(number: String, accessor: VideoAccessor, progress: ProgressMeter) =
-        workUser.videos.upload(
+        uploadUser.videos.upload(
             groupUser.id,
             "tiktok-$number",
             false,

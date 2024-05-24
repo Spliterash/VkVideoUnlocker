@@ -8,12 +8,12 @@ import ru.spliterash.vkVideoUnlocker.group.dto.GroupStatus
 import ru.spliterash.vkVideoUnlocker.group.dto.MemberStatus
 import ru.spliterash.vkVideoUnlocker.video.exceptions.VideoGroupPrivateException
 import ru.spliterash.vkVideoUnlocker.video.exceptions.VideoGroupRequestSendException
-import ru.spliterash.vkVideoUnlocker.vk.actor.types.WorkUser
+import ru.spliterash.vkVideoUnlocker.vk.actor.types.DownloadUser
 import ru.spliterash.vkVideoUnlocker.vk.api.VkApi
 
 @Singleton
 class WorkUserGroupService(
-    @WorkUser private val user: VkApi
+    @DownloadUser private val user: VkApi
 ) {
     private val groups = hashMapOf<Int, GroupInfo>()
     private val lock = Mutex()

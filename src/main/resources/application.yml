@@ -19,10 +19,13 @@ vk-unlocker:
     id: group_id
     # Token группы
     token: group_token
-  # Пользователь для подписки и скачивания
-  work-user:
-    token: action_user_token
-  # Пользователь для "тыканья" видосов на наличие блокировки
+  # Пользователь для скачивания видео и вступления в группы
+  download-user:
+    token: download_user_token
+  # Пользователь для загрузки видео в группу
+  upload-user:
+    token: upload_user_token
+  # Пользователь для "тыканья" видосов на наличие блокировки, единственный READ ONLY
   poke-user:
     token: poke_user_token
   private-groups: false

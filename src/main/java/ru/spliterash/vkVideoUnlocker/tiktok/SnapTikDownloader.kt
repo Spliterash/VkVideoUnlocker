@@ -60,7 +60,7 @@ class SnapTikDownloader(
         if (!numberMatcher.find()) throw IllegalStateException("Failed to parse video url from snaptik response")
         val number = numberMatcher.group(1)
         val hdTokenMatcher = hdTokenPattern.matcher(decodedJs)
-        if (!hdTokenMatcher.find()) throw IllegalStateException("snaptik stage 4 error: extract hd token")
+        if (!hdTokenMatcher.find()) throw IllegalStateException("snaptik stage 4 error: extract hd token, decrypted response: $decodedJs")
         val hdToken = hdTokenMatcher.group(1)
         val hdTokenLinkGetter = "https://snaptik.app/getHdLink.php?token=$hdToken"
         val linkResponse = Request.Builder()

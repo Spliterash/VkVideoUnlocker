@@ -16,15 +16,14 @@ import ru.spliterash.vkVideoUnlocker.video.repository.VideoRepository
 import ru.spliterash.vkVideoUnlocker.video.service.dto.UnlockResult
 import ru.spliterash.vkVideoUnlocker.video.vkModels.VkVideo
 import ru.spliterash.vkVideoUnlocker.vk.actor.GroupUser
-import ru.spliterash.vkVideoUnlocker.vk.actor.types.WorkUser
+import ru.spliterash.vkVideoUnlocker.vk.actor.types.UploadUser
 import ru.spliterash.vkVideoUnlocker.vk.api.VkApi
 import java.util.*
 
 @Singleton
 class VideoReUploadService(
-    private val videoService: VideoService,
     private val videoRepository: VideoRepository,
-    @WorkUser private val workUser: VkApi,
+    @UploadUser private val uploadUser: VkApi,
     @GroupUser private val groupUser: VkApi,
     @Value("\${vk-unlocker.private-groups:false}") private val privateGroupWork: Boolean
 ) {
@@ -81,7 +80,7 @@ class VideoReUploadService(
 
         val videoAccessor = fullVideo.toAccessor()
 
-        val reUploadedId = workUser.videos.upload(
+        val reUploadedId = uploadUser.videos.upload(
             groupUser.id,
             originalAttachmentId,
             private,

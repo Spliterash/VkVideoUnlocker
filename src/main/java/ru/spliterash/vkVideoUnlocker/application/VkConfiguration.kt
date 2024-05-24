@@ -6,8 +6,9 @@ import io.micronaut.context.annotation.Factory
 import io.micronaut.context.annotation.Value
 import ru.spliterash.vkVideoUnlocker.vk.actor.GroupUser
 import ru.spliterash.vkVideoUnlocker.vk.actor.types.Actor
+import ru.spliterash.vkVideoUnlocker.vk.actor.types.DownloadUser
 import ru.spliterash.vkVideoUnlocker.vk.actor.types.PokeUser
-import ru.spliterash.vkVideoUnlocker.vk.actor.types.WorkUser
+import ru.spliterash.vkVideoUnlocker.vk.actor.types.UploadUser
 import ru.spliterash.vkVideoUnlocker.vk.api.VkApi
 import ru.spliterash.vkVideoUnlocker.vk.api.VkApiImpl
 
@@ -16,9 +17,15 @@ class VkConfiguration(
     private val context: ApplicationContext,
 ) {
     @Bean
-    @WorkUser
-    fun workUserActor(
-        @Value("\${vk-unlocker.work-user.token}") token: String,
+    @DownloadUser
+    fun downloadUserActor(
+        @Value("\${vk-unlocker.download-user.token}") token: String,
+    ): VkApi = context.createBean(VkApiImpl::class.java, Actor(-1, token))
+
+    @Bean
+    @UploadUser
+    fun uploadUserActor(
+        @Value("\${vk-unlocker.upload-user.token}") token: String,
     ): VkApi = context.createBean(VkApiImpl::class.java, Actor(-1, token))
 
     @Bean

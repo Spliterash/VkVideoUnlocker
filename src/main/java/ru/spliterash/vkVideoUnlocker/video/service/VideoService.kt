@@ -18,7 +18,7 @@ import ru.spliterash.vkVideoUnlocker.video.vkModels.normalId
 import ru.spliterash.vkVideoUnlocker.vk.MessageScanner
 import ru.spliterash.vkVideoUnlocker.vk.VkConst
 import ru.spliterash.vkVideoUnlocker.vk.actor.types.PokeUser
-import ru.spliterash.vkVideoUnlocker.vk.actor.types.WorkUser
+import ru.spliterash.vkVideoUnlocker.vk.actor.types.DownloadUser
 import ru.spliterash.vkVideoUnlocker.vk.api.VkApi
 
 @Singleton
@@ -26,7 +26,7 @@ class VideoService(
     private val messageScanner: MessageScanner,
     private val workUserGroupService: WorkUserGroupService,
     private val videoAccessorFactory: VideoAccessorFactory,
-    @WorkUser private val workUser: VkApi,
+    @DownloadUser private val downloadUser: VkApi,
     @PokeUser private val pokeUser: VkApi,
 ) {
     /**
@@ -66,7 +66,7 @@ class VideoService(
     }
 
     suspend fun wrapWallId(wallId: String): VideoContentHolder {
-        val wall = workUser.walls.getById(wallId)
+        val wall = downloadUser.walls.getById(wallId)
         val video = messageScanner.scanForAttachment(wall) { it.video }
         if (video != null)
             return FullVideoHolder(video) // Пользователь получает полное видео если запросил стену
@@ -163,7 +163,7 @@ class VideoService(
             return full
         }
 
-        override suspend fun loadVideo() = workUser.videos.getVideo(contentId)
+        override suspend fun loadVideo() = downloadUser.videos.getVideo(contentId)
     }
 
     private inner class FullVideoHolder(val video: VkVideo) : AbstractVideoHolder(video.normalId()) {
@@ -191,7 +191,7 @@ class VideoService(
             return full
         }
 
-        override suspend fun loadVideo() = workUser.videos.getVideo(contentId)
+        override suspend fun loadVideo() = downloadUser.videos.getVideo(contentId)
     }
 
     private fun baseCheckStory(story: VkStory) {
@@ -202,7 +202,7 @@ class VideoService(
     }
 
     private suspend fun findStoryById(id: String): VkStory {
-        return workUser.stories.getById(id)
+        return downloadUser.stories.getById(id)
     }
 
     private abstract inner class AbstractStoryHolder(contentId: String) :
