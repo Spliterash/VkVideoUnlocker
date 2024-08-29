@@ -5,14 +5,13 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import io.micronaut.context.annotation.Parameter
 import io.micronaut.context.annotation.Prototype
-import okhttp3.*
-import okhttp3.MediaType.Companion.toMediaType
-import okio.BufferedSink
+import okhttp3.OkHttpClient
+import ru.spliterash.vkVideoUnlocker.common.VkUploaderService
 import ru.spliterash.vkVideoUnlocker.common.okHttp.executeAsync
 import ru.spliterash.vkVideoUnlocker.video.accessor.VideoAccessor
 import ru.spliterash.vkVideoUnlocker.video.exceptions.VideoLockedException
 import ru.spliterash.vkVideoUnlocker.video.exceptions.VideoNotFoundException
-import ru.spliterash.vkVideoUnlocker.video.vkModels.VkSaveResponse
+import ru.spliterash.vkVideoUnlocker.common.vkModels.VkUploadUrlResponse
 import ru.spliterash.vkVideoUnlocker.video.vkModels.VkVideo
 import ru.spliterash.vkVideoUnlocker.video.vkModels.VkVideoUploadResponse
 import ru.spliterash.vkVideoUnlocker.vk.VkConst
@@ -23,6 +22,7 @@ import ru.spliterash.vkVideoUnlocker.vk.vkModels.VkItemsResponse
 @Prototype
 class VideosImpl(
     @Parameter private val client: OkHttpClient,
+    private val vkUploaderHelper: VkUploaderService,
     private val mapper: ObjectMapper,
     private val helper: VkHelper
 ) : Videos {
@@ -70,50 +70,13 @@ class VideosImpl(
             )
             .build()
             .executeAsync(client)
-            .readResponse(helper, VkSaveResponse::class.java)
+            .readResponse(helper, VkUploadUrlResponse::class.java)
             .uploadUrl
 
         val info = accessor.load()
 
-        val response = Request.Builder()
-            .url(url)
-            .addHeader("Content-Type", "multipart/form-data")
-            .post(
-                MultipartBody.Builder()
-                    .addFormDataPart("video_file", "video.mp4", object : RequestBody() {
-                        override fun contentType(): MediaType {
-                            return "application/octet-stream".toMediaType()
-                        }
-
-                        override fun writeTo(sink: BufferedSink) {
-                            info.stream.use { `in` ->
-                                val buffer = ByteArray(8192)
-                                var bytesRead: Int
-                                var completed = 0L
-                                while (`in`.read(buffer).also { bytesRead = it } != -1) {
-                                    sink.write(buffer, 0, bytesRead)
-                                    completed += bytesRead
-
-                                    progressMeter.onProgress(completed, info.contentLength)
-                                }
-                            }
-                        }
-
-                        override fun contentLength(): Long {
-                            return info.contentLength
-                        }
-
-                        override fun isOneShot(): Boolean {
-                            return true
-                        }
-                    })
-                    .build()
-            )
-            .build()
-            .executeAsync(client)
-
-        val raw = response.body.string()
-        val mapped = mapper.readValue<VkVideoUploadResponse>(raw)
+        val response = vkUploaderHelper.upload(url, progressMeter, "video", "video.mp4", info)
+        val mapped = mapper.readValue<VkVideoUploadResponse>(response)
 
         return "-${groupId}_${mapped.videoId}"
     }

@@ -7,7 +7,7 @@ import ru.spliterash.vkVideoUnlocker.common.okHttp.OkHttpFactory
 
 @Singleton
 class RedirectHelper(
-    private val okHttpFactory: OkHttpFactory
+    okHttpFactory: OkHttpFactory
 ) {
     private val client = okHttpFactory.create().followRedirects(false).build()
 

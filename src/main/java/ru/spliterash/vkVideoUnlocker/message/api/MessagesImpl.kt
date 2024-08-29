@@ -17,6 +17,13 @@ class MessagesImpl(
     private val vkHelper: VkHelper,
     private val mapper: ObjectMapper
 ) : Messages {
+    private fun String.normalizeLength() = if (length > 4096) substring(
+        0,
+        4096 - 3
+    ) + "..." else
+        this
+
+
     override suspend fun sendMessage(peerId: Long, message: String?, replyTo: Long?, attachments: String?): Long {
         val response = VkConst
             .requestBuilder()
@@ -27,7 +34,7 @@ class MessagesImpl(
                     .addQueryParameter("disable_mentions", "1")
                     .apply {
                         if (message != null)
-                            addQueryParameter("message", message)
+                            addQueryParameter("message", message.normalizeLength())
                         if (attachments != null)
                             addQueryParameter("attachment", attachments)
                         if (replyTo != null) {
@@ -63,7 +70,7 @@ class MessagesImpl(
                     .addQueryParameter("keep_forward_messages", "1")
                     .apply {
                         if (message != null)
-                            addQueryParameter("message", message)
+                            addQueryParameter("message", message.normalizeLength())
                         if (attachments != null)
                             addQueryParameter("attachment", attachments)
                     }

@@ -1,7 +1,7 @@
 plugins {
 //    `java-library`
-    kotlin("jvm") version "1.9.23"
-    kotlin("kapt") version "1.9.23"
+    kotlin("jvm") version "2.0.0"
+    kotlin("kapt") version "2.0.0"
     id("com.github.johnrengelman.shadow") version "8.1.1"
     id("io.micronaut.minimal.application") version "4.3.3"
 }
@@ -16,12 +16,12 @@ application {
     mainClass.set("ru.spliterash.vkVideoUnlocker.application.VkUnlockerApplication")
 }
 java {
-    sourceCompatibility = JavaVersion.toVersion("17")
+    sourceCompatibility = JavaVersion.toVersion("21")
 }
 tasks {
     compileKotlin {
         compilerOptions {
-            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
         }
     }
 }
@@ -53,4 +53,11 @@ dependencies {
 
     // Yaml
     runtimeOnly("org.yaml:snakeyaml")
+
+// JSOUP
+    implementation("org.tukaani:xz:1.10")
+    implementation("org.jsoup:jsoup:1.18.1")
+    implementation("org.apache.commons:commons-compress:1.27.1")
+    implementation("io.v47.jaffree:jaffree:1.0.0")
+
 }

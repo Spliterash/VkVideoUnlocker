@@ -4,18 +4,19 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import jakarta.inject.Singleton
 import okhttp3.MultipartBody
 import okhttp3.Request
+import ru.spliterash.vkVideoUnlocker.common.InfoLoaderService
 import ru.spliterash.vkVideoUnlocker.common.okHttp.OkHttpFactory
 import ru.spliterash.vkVideoUnlocker.common.okHttp.executeAsync
 import ru.spliterash.vkVideoUnlocker.video.accessor.UrlVideoAccessorImpl
-import java.net.URL
 import java.util.regex.Pattern
 
 // Код деобфускации спизжен отсюда: https://github.com/Ty3uK/snaptik-bot/blob/main/src/url_resolver/snap/util.rs
 @Singleton
-class SnapTikDownloader(
+class SnapTikVideoDownloader(
     okHttpFactory: OkHttpFactory,
-    private val objectMapper: ObjectMapper
-) : TiktokDownloader {
+    private val objectMapper: ObjectMapper,
+    private val infoLoaderService: InfoLoaderService
+) : TiktokVideoDownloader {
     private val client = okHttpFactory.create()
         .build()
 
@@ -73,7 +74,7 @@ class SnapTikDownloader(
         val node = objectMapper.readTree(linkResponse)
         val url = node.get("url").asText()
 
-        return TiktokVideo(number, UrlVideoAccessorImpl(client, URL(url)))
+        return TiktokVideo(number, UrlVideoAccessorImpl(infoLoaderService, client, url))
     }
 
     private suspend fun getToken(): String {

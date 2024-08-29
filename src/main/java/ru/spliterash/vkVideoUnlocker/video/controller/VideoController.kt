@@ -6,12 +6,13 @@ import io.micronaut.http.HttpStatus
 import io.micronaut.http.MediaType
 import io.micronaut.http.annotation.*
 import io.micronaut.http.server.types.files.StreamedFile
-import kotlinx.coroutines.*
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.async
+import org.slf4j.LoggerFactory
 import ru.spliterash.vkVideoUnlocker.common.CoroutineHelper
 import ru.spliterash.vkVideoUnlocker.video.DownloadUrlSupplier
 import ru.spliterash.vkVideoUnlocker.video.Routes
 import ru.spliterash.vkVideoUnlocker.video.accessor.AdvancedVideoAccessor
-import ru.spliterash.vkVideoUnlocker.video.accessor.VideoAccessor
 import ru.spliterash.vkVideoUnlocker.video.controller.response.VideoResponse
 import ru.spliterash.vkVideoUnlocker.video.controller.response.VideoUnlockResponse
 import ru.spliterash.vkVideoUnlocker.video.dto.FullVideo
@@ -26,6 +27,8 @@ class VideoController(
     private val reUploadService: VideoReUploadService,
     private val downloadUrlSupplier: DownloadUrlSupplier,
 ) {
+    private val log = LoggerFactory.getLogger(VideoController::class.java)
+
     private val scope = CoroutineHelper.scope
     private val cache = Caffeine
         .newBuilder()
@@ -80,6 +83,7 @@ class VideoController(
         @PathVariable("attachmentId") attachmentId: String,
         @QueryValue("quality", defaultValue = "") quality: String,
         @Header("Range", defaultValue = "") rangeHeader: String?,
+        @Header("X-Forwarded-For", defaultValue = "idk") ipHeader: String?
     ): HttpResponse<StreamedFile> {
         val accessor = cache.get(attachmentId).await()
         val qualityInt = try {
@@ -93,6 +97,8 @@ class VideoController(
         else {
             accessor.load(qualityInt, rangeHeader)
         }
+
+        log.info("Video download $attachmentId from $ipHeader")
 
         return HttpResponse.status<StreamedFile>(HttpStatus.valueOf(info.code))
             .header("Accept-Ranges", "bytes")

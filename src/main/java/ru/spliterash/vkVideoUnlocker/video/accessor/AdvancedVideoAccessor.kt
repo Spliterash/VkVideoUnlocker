@@ -1,5 +1,6 @@
 package ru.spliterash.vkVideoUnlocker.video.accessor
 
+import ru.spliterash.vkVideoUnlocker.common.InputStreamSource
 import java.net.URL
 
 interface AdvancedVideoAccessor : VideoAccessor {
@@ -7,6 +8,6 @@ interface AdvancedVideoAccessor : VideoAccessor {
     val maxQualityUrl: URL
     fun preview(): URL
 
-    suspend fun load(quality: Int): VideoAccessor.Info
-    suspend fun load(quality: Int, range: String): VideoAccessor.Info
+    suspend fun load(quality: Int): InputStreamSource.Info
+    suspend fun load(quality: Int, range: String): InputStreamSource.Info
 }

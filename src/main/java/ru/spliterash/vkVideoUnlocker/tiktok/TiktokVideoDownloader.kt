@@ -1,6 +1,6 @@
 package ru.spliterash.vkVideoUnlocker.tiktok
 
 
-interface TiktokDownloader {
+interface TiktokVideoDownloader {
     suspend fun download(videoUrl: String): TiktokVideo
 }

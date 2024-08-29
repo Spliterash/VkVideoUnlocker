@@ -1,16 +1,7 @@
 package ru.spliterash.vkVideoUnlocker.video.accessor
 
-import java.io.InputStream
-import java.net.URL
+import ru.spliterash.vkVideoUnlocker.common.InputStreamSource
 
-interface VideoAccessor {
+interface VideoAccessor : InputStreamSource {
     suspend fun size(quality: Int): Long
-    suspend fun load(): Info
-
-    data class Info(
-        val code: Int,
-        val stream: InputStream,
-        val contentRange: String?,
-        val contentLength: Long
-    )
 }

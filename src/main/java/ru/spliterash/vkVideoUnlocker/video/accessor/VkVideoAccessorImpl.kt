@@ -4,6 +4,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.executeAsync
 import org.apache.commons.logging.LogFactory
+import ru.spliterash.vkVideoUnlocker.common.InputStreamSource
 import ru.spliterash.vkVideoUnlocker.video.vkModels.VkVideo
 import java.net.URL
 
@@ -37,7 +38,7 @@ class VkVideoAccessorImpl(
 
     override suspend fun load() = load(maxQuality)
 
-    override suspend fun load(quality: Int): VideoAccessor.Info {
+    override suspend fun load(quality: Int): InputStreamSource.Info {
         val request = builder(video.qualityUrl(quality))
             .get()
             .build()
@@ -47,7 +48,7 @@ class VkVideoAccessorImpl(
         val size = response.headers["Content-Length"]?.toLong() ?: -1L
 
 
-        return VideoAccessor.Info(
+        return InputStreamSource.Info(
             response.code,
             response
                 .body
@@ -57,7 +58,7 @@ class VkVideoAccessorImpl(
         )
     }
 
-    override suspend fun load(quality: Int, range: String): VideoAccessor.Info {
+    override suspend fun load(quality: Int, range: String): InputStreamSource.Info {
         val url = video.qualityUrl(quality)
 
         val request = builder(url)
@@ -70,7 +71,7 @@ class VkVideoAccessorImpl(
         val size = response.headers["Content-Length"]?.toLong() ?: -1L
         val contentRange = response.headers["Content-Range"]
 
-        return VideoAccessor.Info(
+        return InputStreamSource.Info(
             response.code,
             response
                 .body

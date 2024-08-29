@@ -1,7 +1,7 @@
-package ru.spliterash.vkVideoUnlocker.video.vkModels
+package ru.spliterash.vkVideoUnlocker.common.vkModels
 
 import com.fasterxml.jackson.annotation.JsonProperty
 
-data class VkSaveResponse(
+data class VkUploadUrlResponse(
     @JsonProperty("upload_url") val uploadUrl: String
 )

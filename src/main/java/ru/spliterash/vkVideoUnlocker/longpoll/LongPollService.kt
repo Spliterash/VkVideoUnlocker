@@ -73,7 +73,6 @@ class LongPollService(
                         CoroutineHelper.scope.launch {
                             try {
                                 messageChainService.proceedMessage(message, editableMessage)
-
                             } catch (ex: VkUnlockerException) {
                                 if (ex is VkApiException)
                                     ex.printStackTrace()

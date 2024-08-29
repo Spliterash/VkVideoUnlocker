@@ -4,48 +4,49 @@ import jakarta.inject.Singleton
 import okhttp3.FormBody
 import okhttp3.Request
 import okhttp3.executeAsync
+import org.jsoup.Jsoup
+import ru.spliterash.vkVideoUnlocker.common.InfoLoaderService
+import ru.spliterash.vkVideoUnlocker.common.InputStreamSource
 import ru.spliterash.vkVideoUnlocker.common.okHttp.OkHttpFactory
 import ru.spliterash.vkVideoUnlocker.common.okHttp.executeAsync
-import ru.spliterash.vkVideoUnlocker.video.accessor.UrlVideoAccessorImpl
-import java.net.URL
 import java.util.regex.Pattern
 
-//@Singleton
-class TikCdnDownloader(
-    okHttpFactory: OkHttpFactory
-) : TiktokDownloader {
+@Singleton
+class TikCdnPhotoDownloader(
+    okHttpFactory: OkHttpFactory,
+    private val infoLoaderService: InfoLoaderService,
+) : TiktokPhotoDownloader {
     private val client = okHttpFactory.create().build()
     private val tikCdnTokenPattern = Pattern.compile("s_tt += +'(?<token>[a-zA-Z0-9_-]+)'")
-    private val tikCdnVideoUrlPattern = Pattern.compile("https://tikcdn\\.io/ssstik/(?<id>\\d+)")
-    override suspend fun download(videoUrl: String): TiktokVideo {
+    override suspend fun download(url: String): TiktokPhoto {
         val token = getActualToken()
 
         val response = Request.Builder()
             .url("https://ssstik.io/abc?url=dl")
             .post(
                 FormBody.Builder()
-                    .addEncoded("id", videoUrl)
+                    .addEncoded("id", url)
                     .addEncoded("locale", "en")
                     .addEncoded("tt", token)
                     .build()
             )
-            .header("User-Agent","Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:122.0) Gecko/20100101 Firefox/122.0")
+            .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:122.0) Gecko/20100101 Firefox/122.0")
             .build()
             .executeAsync(client)
             .body
             .string()
-        val matcher = tikCdnVideoUrlPattern.matcher(response)
-        if (!matcher.find()) {
-            println(response)
-            throw IllegalStateException("ssstik.io return wrong response")
+
+        val page = Jsoup.parse(response)
+        val slides = page.select(".splide .download_link").map { slideHref ->
+            slideHref.attr("href").loadLink()
         }
+        val musicLink = page.selectFirst(".download_link.music")
+        val music = musicLink?.attr("href")?.loadLink()
 
-        val url = matcher.group()
-        val id = matcher.group("id")
-
-        return TiktokVideo(id, UrlVideoAccessorImpl(client, URL(url)))
-
+        return TiktokPhoto(music, slides)
     }
+
+    private suspend fun String.loadLink() = InputStreamSource { infoLoaderService.load(this) }
 
     private suspend fun getActualToken(): String {
         val response = client
