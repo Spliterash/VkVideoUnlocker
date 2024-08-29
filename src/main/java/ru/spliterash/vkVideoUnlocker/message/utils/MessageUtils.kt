@@ -13,6 +13,7 @@ import ru.spliterash.vkVideoUnlocker.video.vkModels.VkVideo
 import ru.spliterash.vkVideoUnlocker.vk.MessageScanner
 import ru.spliterash.vkVideoUnlocker.vk.actor.GroupUser
 import ru.spliterash.vkVideoUnlocker.vk.api.VkApi
+import ru.spliterash.vkVideoUnlocker.wall.vkModels.WallPost
 import java.util.function.Predicate
 import java.util.regex.Pattern
 
@@ -34,7 +35,7 @@ class MessageUtils(
             root,
             listOf(
                 MessageScanner.Checker { it.video },
-                MessageScanner.Checker { it.story }
+                MessageScanner.Checker { it.story },
             ),
             containerPredicate
         )
