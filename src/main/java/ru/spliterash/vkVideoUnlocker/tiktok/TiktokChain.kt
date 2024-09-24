@@ -24,7 +24,7 @@ class TiktokChain(
     private val pattern =
         Pattern.compile("https?://([a-zA-Z0-9-]+\\.)*tiktok\\.com(/[^\\s]*)?")
     private val directUrlPattern =
-        Pattern.compile("https?://www\\.tiktok\\.com/@[\\w.]+/(?<type>video|photo)/(?<id>\\d+)")
+        Pattern.compile("https?://www\\.tiktok\\.com/@[\\w.]*/(?<type>video|photo)/(?<id>\\d+)")
 
     override suspend fun handle(message: RootMessage, editableMessage: EditableMessage): Boolean = coroutineScope {
         val videoUrlInit = messageScanner.scanForText(message) {
@@ -38,7 +38,7 @@ class TiktokChain(
             videoUrl = redirectHelper.finalUrl(videoUrl)
             directUrlMatcher = directUrlPattern.matcher(videoUrl)
 
-            if (!directUrlMatcher.find()) throw IllegalStateException("Unable to normalize tiktok url. Init $videoUrl, after try $videoUrlInit")
+            if (!directUrlMatcher.find()) throw IllegalStateException("Unable to normalize tiktok url. Init $videoUrlInit, after try $videoUrl")
         }
         editableMessage.sendOrUpdate("Начинаем обработку tiktok контента, это может быть долго")
         val contentType = directUrlMatcher.group("type")
