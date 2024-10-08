@@ -35,9 +35,18 @@ class VideoController(
         .expireAfterWrite(30, TimeUnit.MINUTES)
         .build<String, Deferred<AdvancedVideoAccessor>> {
             scope.async {
-                load(it).toAccessor()
+                try {
+                    load(it).toAccessor()
+                } catch (ex: Exception) {
+                    invalidate(it)
+                    throw ex
+                }
             }
         }
+
+    private fun invalidate(id: String) {
+        cache.invalidate(id)
+    }
 
     private suspend fun load(attachmentId: String): FullVideo {
         val holder = videoService.wrapAttachmentId(attachmentId)
@@ -85,7 +94,7 @@ class VideoController(
         @Header("Range", defaultValue = "") rangeHeader: String?,
         @Header("X-Forwarded-For", defaultValue = "idk") ipHeader: String?
     ): HttpResponse<StreamedFile> {
-        val accessor = cache.get(attachmentId).await()
+        val accessor = cache.get(attachmentId.removeSuffix(".mp4")).await()
         val qualityInt = try {
             quality.toInt()
         } catch (ex: Exception) {

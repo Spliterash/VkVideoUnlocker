@@ -15,7 +15,7 @@ import ru.spliterash.vkVideoUnlocker.vk.api.VkApi
 class WorkUserGroupService(
     @DownloadUser private val user: VkApi
 ) {
-    private val groups = hashMapOf<Int, GroupInfo>()
+    private val groups = hashMapOf<Long, GroupInfo>()
     private val lock = Mutex()
 
     /**
@@ -28,7 +28,7 @@ class WorkUserGroupService(
      * @return Статус группы
      */
     @Throws(VideoGroupPrivateException::class, VideoGroupRequestSendException::class)
-    suspend fun joinGroup(groupId: Int): GroupStatus {
+    suspend fun joinGroup(groupId: Long): GroupStatus {
         val groupInfo = lock.withLock { groups[groupId] }
         if (groupInfo != null) {
             val groupIsOpen = groupInfo.groupStatus == GroupStatus.PUBLIC

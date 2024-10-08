@@ -8,7 +8,7 @@ object VkConst {
     const val HOST = "api.vk.com"
     const val START = "https://$HOST/method/"
     const val VERSION = "5.131"
-    val VK_ATTACHMENT_PATTERN: Pattern = Pattern.compile("(?<type>video|wall|story)(?<owner>-?\\d+)_(?<id>\\d+)")
+    val VK_ATTACHMENT_PATTERN: Pattern = Pattern.compile("(?<type>video|wall|story)(?<owner>-?\\d+)_(?<id>\\d+)(?:_(?<key>[a-z0-9]+))?")
 
     fun urlBuilder(method: String): HttpUrl.Builder {
         return HttpUrl.Builder()

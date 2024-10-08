@@ -6,7 +6,6 @@ import com.fasterxml.jackson.module.kotlin.readValue
 import io.micronaut.context.annotation.Parameter
 import io.micronaut.context.annotation.Prototype
 import okhttp3.OkHttpClient
-import org.apache.commons.io.IOUtils
 import ru.spliterash.vkVideoUnlocker.common.VkUploaderService
 import ru.spliterash.vkVideoUnlocker.common.okHttp.executeAsync
 import ru.spliterash.vkVideoUnlocker.common.vkModels.VkUploadUrlResponse
@@ -19,7 +18,6 @@ import ru.spliterash.vkVideoUnlocker.vk.VkConst
 import ru.spliterash.vkVideoUnlocker.vk.VkHelper
 import ru.spliterash.vkVideoUnlocker.vk.readResponse
 import ru.spliterash.vkVideoUnlocker.vk.vkModels.VkItemsResponse
-import java.io.FileOutputStream
 
 @Prototype
 class VideosImpl(
@@ -55,7 +53,7 @@ class VideosImpl(
     }
 
     override suspend fun upload(
-        groupId: Int,
+        groupId: Long,
         name: String,
         private: Boolean,
         accessor: VideoAccessor,

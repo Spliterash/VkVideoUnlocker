@@ -2,6 +2,11 @@ package ru.spliterash.vkVideoUnlocker.video.service
 
 import jakarta.inject.Singleton
 import ru.spliterash.vkVideoUnlocker.group.WorkUserGroupService
+import ru.spliterash.vkVideoUnlocker.longpoll.message.RootMessage
+import ru.spliterash.vkVideoUnlocker.longpoll.message.attachments.AttachmentContainer
+import ru.spliterash.vkVideoUnlocker.longpoll.message.attachments.Wall
+import ru.spliterash.vkVideoUnlocker.longpoll.message.isGroupChat
+import ru.spliterash.vkVideoUnlocker.message.utils.MessageContentScanner
 import ru.spliterash.vkVideoUnlocker.story.exceptions.CantSeeStoryException
 import ru.spliterash.vkVideoUnlocker.story.exceptions.StoryExpiredException
 import ru.spliterash.vkVideoUnlocker.story.exceptions.StoryNotVideoException
@@ -14,18 +19,21 @@ import ru.spliterash.vkVideoUnlocker.video.holder.StoryHolder
 import ru.spliterash.vkVideoUnlocker.video.holder.VideoContentHolder
 import ru.spliterash.vkVideoUnlocker.video.holder.VideoHolder
 import ru.spliterash.vkVideoUnlocker.video.vkModels.VkVideo
-import ru.spliterash.vkVideoUnlocker.video.vkModels.normalId
+import ru.spliterash.vkVideoUnlocker.video.vkModels.publicId
 import ru.spliterash.vkVideoUnlocker.vk.MessageScanner
 import ru.spliterash.vkVideoUnlocker.vk.VkConst
-import ru.spliterash.vkVideoUnlocker.vk.actor.types.PokeUser
+import ru.spliterash.vkVideoUnlocker.vk.actor.GroupUser
 import ru.spliterash.vkVideoUnlocker.vk.actor.types.DownloadUser
+import ru.spliterash.vkVideoUnlocker.vk.actor.types.PokeUser
 import ru.spliterash.vkVideoUnlocker.vk.api.VkApi
 
 @Singleton
 class VideoService(
     private val messageScanner: MessageScanner,
+    private val messageContentScanner: MessageContentScanner,
     private val workUserGroupService: WorkUserGroupService,
     private val videoAccessorFactory: VideoAccessorFactory,
+    @GroupUser private val group: VkApi,
     @DownloadUser private val downloadUser: VkApi,
     @PokeUser private val pokeUser: VkApi,
 ) {
@@ -33,8 +41,6 @@ class VideoService(
      * Базовые проверки видосов
      */
     private fun baseCheckVideo(video: VkVideo) {
-        if (video.isPrivate)
-            throw VideoPrivateException()
         if (video.platform != null)
             throw VideoFromAnotherPlatformException()
     }
@@ -55,7 +61,10 @@ class VideoService(
         val type = matcher.group("type")
         val ownerId = matcher.group("owner")
         val id = matcher.group("id")
-        val normalId = "${ownerId}_${id}"
+        val key = matcher.group("key")
+
+        var normalId = "${ownerId}_${id}"
+        if (key != null) normalId += "_$key"
 
         return when (type) {
             "video" -> wrapVideoId(normalId)
@@ -74,9 +83,9 @@ class VideoService(
             throw VideoNotFoundException()
     }
 
-    fun wrap(video: VkVideo): VideoContentHolder {
+    fun wrap(video: VkVideo, chain: List<AttachmentContainer>): VideoContentHolder {
         baseCheckVideo(video)
-        return InfoVideoHolder(video)
+        return InfoVideoHolder(video, chain)
     }
 
     fun wrap(story: VkStory): VideoContentHolder {
@@ -108,10 +117,15 @@ class VideoService(
         } catch (_: VideoLockedException) {
         } catch (_: CantSeeStoryException) {
         }
+        holder as VideoContentHolder // КРИНЖАТИНА!!!!
+
 
         val ownerId = holder.ownerId
-        if (ownerId > 0)
-            throw WeDoNotWorkWithLockedUserVideosException()
+        if (ownerId > 0) {
+            val video = tryMessageGetBehavior(holder)
+
+            return FullVideo(video, null, videoAccessorFactory, workUserGroupService)
+        }
 
         val groupId = -ownerId
         val status = workUserGroupService.joinGroup(groupId)
@@ -119,10 +133,22 @@ class VideoService(
         val video = try {
             holder.loadVideo()
         } catch (locked: VideoLockedException) {
-            // Вк по какой то непонятной причине говорит что видео доступно только подписчикам, если оно приватное
-            throw VideoPrivateException()
+            tryMessageGetBehavior(holder)
         }
         return FullVideo(video, status, videoAccessorFactory, workUserGroupService)
+    }
+
+    private suspend fun tryMessageGetBehavior(holder: VideoContentHolder): VkVideo {
+        if (holder !is InfoVideoHolder) throw NoSourceException()
+        val chain = holder.source ?: throw NoSourceException()
+        val source = chain.first() as RootMessage
+        if (source.isGroupChat()) throw NoSourceException()
+
+        val rootMessageByUser = downloadUser.messages.messageById(messageId = source.id, groupId = group.id)
+        val result = messageContentScanner.findContent(rootMessageByUser)
+        if (result == null || result.content !is VkVideo || result.content.publicId() != holder.contentId) throw ContentNotFoundException()
+
+        return result.content
     }
 
     suspend fun isLocked(videoId: String): Boolean {
@@ -134,8 +160,9 @@ class VideoService(
         }
     }
 
+    // Какой же кринж, я всё понимаю, но мне мега впадлу переделывать
+    // Простите если вы это видите
     private interface VideoLoader {
-        val ownerId: Int
         suspend fun loadVideo(): VkVideo
     }
 
@@ -163,10 +190,14 @@ class VideoService(
             return full
         }
 
+        override val source: List<AttachmentContainer>?
+            get() = null
+
         override suspend fun loadVideo() = downloadUser.videos.getVideo(contentId)
     }
 
-    private inner class FullVideoHolder(val video: VkVideo) : AbstractVideoHolder(video.normalId()) {
+    private inner class FullVideoHolder(val video: VkVideo) :
+        AbstractVideoHolder(video.publicId()) {
 
         override suspend fun video(): VkVideo {
             return video
@@ -180,9 +211,13 @@ class VideoService(
                 workUserGroupService
             )
         }
+
+        override val source: List<AttachmentContainer>?
+            get() = null
     }
 
-    private inner class InfoVideoHolder(val video: VkVideo) : AbstractVideoHolder(video.normalId()), VideoLoader {
+    private inner class InfoVideoHolder(val video: VkVideo, override val source: List<AttachmentContainer>) :
+        AbstractVideoHolder(video.publicId()), VideoLoader {
         override suspend fun video() = video
         override suspend fun loadFullVideo(): FullVideo {
             val full = getVideoWithTryingLockBehavior(this)
@@ -191,7 +226,20 @@ class VideoService(
             return full
         }
 
-        override suspend fun loadVideo() = downloadUser.videos.getVideo(contentId)
+        override suspend fun loadVideo(): VkVideo {
+            val wall = source.firstOrNull { it is Wall }
+            if (wall is Wall) {
+                val downloadUserWall = downloadUser.walls.getById("${wall.ownerId}_${wall.id}")
+                val wallVideo = messageScanner.scanForAttachment(downloadUserWall) { it.video }
+                if (wallVideo != null) {
+                    if (wallVideo.publicId() != this.video.publicId()) throw ContentNotFoundException()
+                    if (wallVideo.contentRestricted) throw VideoLockedException()
+
+                    return wallVideo
+                }
+            }
+            return downloadUser.videos.getVideo(contentId)
+        }
     }
 
     private fun baseCheckStory(story: VkStory) {
@@ -224,6 +272,9 @@ class VideoService(
             return getVideoWithTryingLockBehavior(this)
         }
 
+        override val source: List<AttachmentContainer>?
+            get() = null
+
         override suspend fun loadVideo(): VkVideo {
             val story = findStoryById(contentId)
             baseCheckStory(story)
@@ -234,7 +285,7 @@ class VideoService(
 
     // Тип держит историю которая пришла в личку группы
     private inner class GroupStoryHolder(
-        val story: VkStory
+        val story: VkStory, override val source: List<AttachmentContainer>?
     ) : AbstractStoryHolder(story.normalId()) {
 
         override suspend fun video(): VkVideo {

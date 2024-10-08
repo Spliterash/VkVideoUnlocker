@@ -22,6 +22,9 @@ data class VkVideo(
     @JsonProperty(
         "description"
     ) val description: String?,
+    @JsonProperty(
+        "access_key"
+    ) val accessKey: String?,
     /**
      * Video duration in seconds
      */
@@ -30,14 +33,14 @@ data class VkVideo(
      * Video ID
      */
     @JsonProperty("id")
-    val id: Int,
+    val id: Long,
     @JsonProperty("content_restricted")
     val contentRestricted: Boolean = false,
     /**
      * Video owner ID
      */
     @JsonProperty("owner_id")
-    val ownerId: Int,
+    val ownerId: Long,
     /**
      * Video title
      */
@@ -80,6 +83,7 @@ data class VkVideo(
 
         return map
     }
+
     @Throws(VideoEmptyUrlException::class)
     fun maxQuality(): Pair<Int, URL> = files?.run {
         if (mp41080 != null)

@@ -4,6 +4,7 @@ import jakarta.inject.Singleton
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import ru.spliterash.vkVideoUnlocker.common.exceptions.AlwaysNotifyException
 import ru.spliterash.vkVideoUnlocker.common.exceptions.VkUnlockerException
 import ru.spliterash.vkVideoUnlocker.longpoll.message.RootMessage
 import ru.spliterash.vkVideoUnlocker.longpoll.message.hasPing
@@ -13,6 +14,7 @@ import ru.spliterash.vkVideoUnlocker.message.editableMessage.EditableMessage
 import ru.spliterash.vkVideoUnlocker.message.utils.MessageUtils
 import ru.spliterash.vkVideoUnlocker.messageChain.MessageHandler
 import ru.spliterash.vkVideoUnlocker.video.DownloadUrlSupplier
+import ru.spliterash.vkVideoUnlocker.video.exceptions.NoSenseReuploadUserVideos
 import ru.spliterash.vkVideoUnlocker.video.exceptions.PrivateVideoDisabledException
 import ru.spliterash.vkVideoUnlocker.video.exceptions.VideoTooLongException
 import ru.spliterash.vkVideoUnlocker.video.service.VideoReUploadService
@@ -33,6 +35,11 @@ class DefaultVideoChain(
             handleException(ex, message)
             return@coroutineScope true
         } ?: return@coroutineScope false
+        if (video.ownerId > 0) {
+            handleException(NoSenseReuploadUserVideos(), message)
+            return@coroutineScope true
+        }
+
 
         val notifyJob = launch {
             delay(3000)
@@ -75,7 +82,7 @@ class DefaultVideoChain(
     }
 
     private fun handleException(ex: VkUnlockerException, message: RootMessage) {
-        if (message.isPersonalChat())
+        if (message.isPersonalChat() || ex is AlwaysNotifyException)
             throw ex
     }
 

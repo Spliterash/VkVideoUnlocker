@@ -11,9 +11,9 @@ import ru.spliterash.vkVideoUnlocker.group.dto.GroupStatus
 import ru.spliterash.vkVideoUnlocker.group.dto.MemberStatus
 import ru.spliterash.vkVideoUnlocker.group.vkModels.LongPollServerResponse
 import ru.spliterash.vkVideoUnlocker.group.vkModels.VkGroupGetByIdResponse
+import ru.spliterash.vkVideoUnlocker.vk.VkConst
 import ru.spliterash.vkVideoUnlocker.vk.VkHelper
 import ru.spliterash.vkVideoUnlocker.vk.actor.types.Actor
-import ru.spliterash.vkVideoUnlocker.vk.VkConst
 
 @Prototype
 class GroupsImpl(
@@ -27,7 +27,7 @@ class GroupsImpl(
         private val log = LoggerFactory.getLogger(GroupsImpl::class.java)
     }
 
-    override suspend fun status(groupId: Int): GroupInfo {
+    override suspend fun status(groupId: Long): GroupInfo {
         val request = VkConst.requestBuilder()
             .url(
                 VkConst.urlBuilder("groups.getById") // Hidden method, taken from mobile app
@@ -62,7 +62,7 @@ class GroupsImpl(
         )
     }
 
-    override suspend fun join(groupId: Int) {
+    override suspend fun join(groupId: Long) {
         val request = VkConst.requestBuilder()
             .url(
                 VkConst.urlBuilder("groups.join")

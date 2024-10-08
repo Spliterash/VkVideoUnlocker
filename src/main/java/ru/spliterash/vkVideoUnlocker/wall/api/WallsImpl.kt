@@ -6,6 +6,7 @@ import io.micronaut.context.annotation.Prototype
 import okhttp3.OkHttpClient
 import ru.spliterash.vkVideoUnlocker.common.okHttp.executeAsync
 import ru.spliterash.vkVideoUnlocker.longpoll.message.attachments.SomethingWithAttachments
+import ru.spliterash.vkVideoUnlocker.video.api.VideosImpl
 import ru.spliterash.vkVideoUnlocker.vk.VkConst
 import ru.spliterash.vkVideoUnlocker.vk.VkHelper
 import ru.spliterash.vkVideoUnlocker.vk.vkModels.VkItemsResponse
@@ -20,6 +21,7 @@ class WallsImpl(
         val response = VkConst
             .requestBuilder()
             .get()
+            .header("user-agent", VideosImpl.USER_AGENT)
             .url(
                 VkConst.urlBuilder("wall.getById")
                     .addQueryParameter("posts", id)

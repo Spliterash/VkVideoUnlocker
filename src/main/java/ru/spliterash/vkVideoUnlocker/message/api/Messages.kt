@@ -1,6 +1,13 @@
 package ru.spliterash.vkVideoUnlocker.message.api
 
+import ru.spliterash.vkVideoUnlocker.longpoll.message.RootMessage
+
 interface Messages {
+    suspend fun messageById(
+        groupId: Long,
+        messageId: String
+    ): RootMessage
+
     suspend fun sendMessage(
         peerId: Long,
         message: String? = null,

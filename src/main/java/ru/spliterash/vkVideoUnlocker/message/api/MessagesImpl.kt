@@ -6,10 +6,13 @@ import io.micronaut.context.annotation.Parameter
 import io.micronaut.context.annotation.Prototype
 import okhttp3.OkHttpClient
 import ru.spliterash.vkVideoUnlocker.common.okHttp.executeAsync
+import ru.spliterash.vkVideoUnlocker.longpoll.message.RootMessage
 import ru.spliterash.vkVideoUnlocker.message.vkModels.request.Forward
 import ru.spliterash.vkVideoUnlocker.message.vkModels.response.MessageSendResponse
+import ru.spliterash.vkVideoUnlocker.video.api.VideosImpl
 import ru.spliterash.vkVideoUnlocker.vk.VkConst
 import ru.spliterash.vkVideoUnlocker.vk.VkHelper
+import ru.spliterash.vkVideoUnlocker.vk.vkModels.VkItemsResponse
 
 @Prototype
 class MessagesImpl(
@@ -22,6 +25,23 @@ class MessagesImpl(
         4096 - 3
     ) + "..." else
         this
+
+    override suspend fun messageById(groupId: Long, messageId: String): RootMessage {
+        val response = VkConst
+            .requestBuilder()
+            .header("user-agent", VideosImpl.USER_AGENT)
+            .url(
+                VkConst.urlBuilder("messages.getById")
+                    .addQueryParameter("group_id", groupId.toString())
+                    .addQueryParameter("message_ids", messageId)
+                    .build()
+            )
+            .build()
+            .executeAsync(client)
+
+        val result = vkHelper.readResponse(response, object : TypeReference<VkItemsResponse<RootMessage>>() {})
+        return result.items.first()
+    }
 
 
     override suspend fun sendMessage(peerId: Long, message: String?, replyTo: Long?, attachments: String?): Long {

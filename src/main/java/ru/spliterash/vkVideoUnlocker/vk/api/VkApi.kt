@@ -9,7 +9,7 @@ import ru.spliterash.vkVideoUnlocker.video.api.Videos
 import ru.spliterash.vkVideoUnlocker.wall.api.Walls
 
 interface VkApi {
-    val id: Int
+    val id: Long
 
     val videos: Videos
     val messages: Messages

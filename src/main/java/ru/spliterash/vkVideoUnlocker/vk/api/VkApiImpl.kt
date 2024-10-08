@@ -28,7 +28,7 @@ class VkApiImpl(
         .readTimeout(30, TimeUnit.SECONDS)
         .addInterceptor(VkInterceptor(actor))
         .build()
-    override val id: Int
+    override val id: Long
         get() = actor.id
 
     override val videos: Videos by lazy { context.createBean(Videos::class.java, client, actor) }

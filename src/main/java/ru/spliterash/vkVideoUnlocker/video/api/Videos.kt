@@ -13,7 +13,7 @@ interface Videos {
      * Выгрузить видос
      */
     suspend fun upload(
-        groupId: Int,
+        groupId: Long,
         name: String,
         private: Boolean,
         accessor: VideoAccessor,

@@ -37,7 +37,7 @@ class VkConfiguration(
     @Bean
     @GroupUser
     fun groupActor(
-        @Value("\${vk-unlocker.group.id}") id: Int,
+        @Value("\${vk-unlocker.group.id}") id: Long,
         @Value("\${vk-unlocker.group.token}") token: String
     ): VkApi = context.createBean(VkApiImpl::class.java, Actor(id, token))
 }

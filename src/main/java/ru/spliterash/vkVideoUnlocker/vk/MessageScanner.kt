@@ -5,6 +5,7 @@ import ru.spliterash.vkVideoUnlocker.longpoll.message.Attachment
 import ru.spliterash.vkVideoUnlocker.longpoll.message.Message
 import ru.spliterash.vkVideoUnlocker.longpoll.message.attachments.AttachmentContainer
 import ru.spliterash.vkVideoUnlocker.longpoll.message.attachments.AttachmentContent
+import java.util.*
 import java.util.function.Predicate
 
 @Singleton
@@ -33,44 +34,56 @@ class MessageScanner {
         root: AttachmentContainer,
         checker: Checker<T>,
     ): T? {
-        return scanForAttachment(root, listOf(checker)) as T?
+        val init = LinkedList<AttachmentContainer>()
+        init += root
+        return scanForAttachment(init, listOf(checker))?.content as T?
     }
 
     @Suppress("MemberVisibilityCanBePrivate")
     fun scanForAttachment(
-        root: AttachmentContainer,
+        chain: LinkedList<AttachmentContainer>,
         checkers: List<Checker<*>>,
         allowedContainerChecker: Predicate<AttachmentContainer> = Predicate { true }
-    ): AttachmentContent? {
+    ): ScanResult? {
+        val root = chain.last()
         if (!allowedContainerChecker.test(root)) return null
         for (attachment in root.attachments()) {
             for (checker in checkers) {
                 val needle = checker.check(attachment)
                 if (needle != null)
-                    return needle
+                    return ScanResult(needle, chain)
             }
 
             if (attachment.wall != null) {
-                val scanResult = scanForAttachment(attachment.wall, checkers, allowedContainerChecker)
+                chain.add(attachment.wall)
+                val scanResult = scanForAttachment(chain, checkers, allowedContainerChecker)
                 if (scanResult != null)
                     return scanResult
+                chain.removeLast()
             }
 
             if (attachment.wallReply != null) {
-                val scanResult = scanForAttachment(attachment.wallReply, checkers, allowedContainerChecker)
+                chain.add(attachment.wallReply)
+                val scanResult = scanForAttachment(chain, checkers, allowedContainerChecker)
                 if (scanResult != null)
                     return scanResult
+                chain.removeLast()
             }
         }
         for (somethingWithAttachments in root.containers()) {
-            val result = scanForAttachment(somethingWithAttachments, checkers, allowedContainerChecker)
+            chain.add(somethingWithAttachments)
+            val result = scanForAttachment(chain, checkers, allowedContainerChecker)
             if (result != null)
                 return result
+            chain.removeLast()
         }
-
         return null
     }
 
+    data class ScanResult(
+        val content: AttachmentContent,
+        val chain: List<AttachmentContainer>,
+    )
 
     fun interface Checker<T : AttachmentContent> {
         fun check(obj: Attachment): T?

@@ -4,6 +4,10 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import ru.spliterash.vkVideoUnlocker.longpoll.message.Attachment
 
 data class Wall(
+    @JsonProperty("id")
+    val id: Long,
+    @JsonProperty("owner_id")
+    val ownerId: Long,
     @JsonProperty("attachments")
     val attachments: List<Attachment> = listOf(),
     @JsonProperty("copy_history")
