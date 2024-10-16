@@ -2,21 +2,20 @@ package ru.spliterash.vkVideoUnlocker.video.service
 
 import com.github.benmanes.caffeine.cache.Caffeine
 import jakarta.inject.Singleton
+import kotlinx.coroutines.launch
+import ru.spliterash.vkVideoUnlocker.common.CoroutineHelper.scope
 import ru.spliterash.vkVideoUnlocker.common.InputStreamSource
 import ru.spliterash.vkVideoUnlocker.longpoll.message.RootMessage
 import ru.spliterash.vkVideoUnlocker.message.editableMessage.EditableMessage
 import ru.spliterash.vkVideoUnlocker.video.api.VideosCommons
 import ru.spliterash.vkVideoUnlocker.video.exceptions.VideoSaveExpireException
 import ru.spliterash.vkVideoUnlocker.video.service.dto.VideoSaveEntry
-import ru.spliterash.vkVideoUnlocker.vk.actor.GroupUser
-import ru.spliterash.vkVideoUnlocker.vk.api.VkApi
 import java.util.*
 import java.util.concurrent.TimeUnit
 
 @Singleton
 class VideoSaveService(
     private val commons: VideosCommons,
-    @GroupUser private val group: VkApi
 ) {
     private val pending = Caffeine
         .newBuilder()
@@ -44,11 +43,13 @@ class VideoSaveService(
 
     suspend fun processUrl(id: UUID, uploadUrl: String) {
         val entry = pending.remove(id) ?: throw VideoSaveExpireException()
-        try {
-            val savedId = commons.upload(uploadUrl, entry.accessor)
-            entry.message.sendOrUpdate("Успешно", "video${entry.userId}_$savedId")
-        } catch (ex: Exception) {
-            entry.message.sendOrUpdate("Ошибка при загрузке(${ex.javaClass.simpleName}): ${ex.localizedMessage}")
+        scope.launch {
+            try {
+                val savedId = commons.upload(uploadUrl, entry.accessor)
+                entry.message.sendOrUpdate("Успешно", "video${entry.userId}_$savedId")
+            } catch (ex: Exception) {
+                entry.message.sendOrUpdate("Ошибка при загрузке(${ex.javaClass.simpleName}): ${ex.localizedMessage}")
+            }
         }
     }
 }
