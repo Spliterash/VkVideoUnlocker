@@ -68,12 +68,15 @@ dependencies {
 }
 
 node {
-    version.set("20.18.0")
-    download.set(true)
+    version = "20.9.0"
+    download = true
+    fastNpmInstall = true
+    nodeProjectDir = file("front")
 }
 
 val buildFront by tasks.registering(NpmTask::class) {
-    description = "Собирает фронтенд проект"
+    dependsOn(tasks.npmInstall)
+
     workingDir.set(file("${projectDir}/front"))
     args.set(listOf("run", "build"))
 
@@ -89,6 +92,6 @@ val copyFrontToBuildResources by tasks.registering(Copy::class) {
     into(file(layout.buildDirectory.file("resources/main/miniapp/")))
 }
 
-tasks.named<ProcessResources>("processResources") {
+tasks.processResources {
     dependsOn(copyFrontToBuildResources)
 }
