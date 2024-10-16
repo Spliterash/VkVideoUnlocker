@@ -43,7 +43,7 @@ export const App = () => {
 
     useEffect(() => {
         fetchData();
-    });
+    }, []);
 
     function component() {
         if (denied)
