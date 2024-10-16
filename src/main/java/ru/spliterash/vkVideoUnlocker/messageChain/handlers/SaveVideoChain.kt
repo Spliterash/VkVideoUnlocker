@@ -9,7 +9,6 @@ import ru.spliterash.vkVideoUnlocker.message.utils.MessageUtils
 import ru.spliterash.vkVideoUnlocker.message.vkModels.request.Keyboard
 import ru.spliterash.vkVideoUnlocker.messageChain.ActivationMessageHandler
 import ru.spliterash.vkVideoUnlocker.video.service.VideoSaveService
-import ru.spliterash.vkVideoUnlocker.video.vkModels.publicId
 
 @Singleton
 class SaveVideoChain(
@@ -45,7 +44,7 @@ class SaveVideoChain(
                                         Payload(
                                             pending.id.toString(),
                                             Payload.Video(
-                                                full.video.publicId(),
+                                                full.originalAttachmentId,
                                                 full.video.title,
                                                 full.video.preview().toString()
                                             )
