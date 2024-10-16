@@ -8,6 +8,7 @@ import okhttp3.OkHttpClient
 import ru.spliterash.vkVideoUnlocker.common.okHttp.executeAsync
 import ru.spliterash.vkVideoUnlocker.longpoll.message.RootMessage
 import ru.spliterash.vkVideoUnlocker.message.vkModels.request.Forward
+import ru.spliterash.vkVideoUnlocker.message.vkModels.request.Keyboard
 import ru.spliterash.vkVideoUnlocker.message.vkModels.response.MessageSendResponse
 import ru.spliterash.vkVideoUnlocker.video.api.VideosImpl
 import ru.spliterash.vkVideoUnlocker.vk.VkConst
@@ -44,7 +45,13 @@ class MessagesImpl(
     }
 
 
-    override suspend fun sendMessage(peerId: Long, message: String?, replyTo: Long?, attachments: String?): Long {
+    override suspend fun sendMessage(
+        peerId: Long,
+        message: String?,
+        replyTo: Long?,
+        attachments: String?,
+        keyboard: Keyboard?,
+    ): Long {
         val response = VkConst
             .requestBuilder()
             .url(
@@ -62,6 +69,8 @@ class MessagesImpl(
                             val string = mapper.writeValueAsString(forward)
                             addQueryParameter("forward", string)
                         }
+                        if (keyboard != null)
+                            addQueryParameter("keyboard", mapper.writeValueAsString(keyboard))
                     }
                     .build()
             )
@@ -78,7 +87,8 @@ class MessagesImpl(
         peerId: Long,
         conversationMessageId: Long,
         message: String?,
-        attachments: String?
+        attachments: String?,
+        keyboard: Keyboard?,
     ) {
         val response = VkConst
             .requestBuilder()
@@ -93,6 +103,8 @@ class MessagesImpl(
                             addQueryParameter("message", message.normalizeLength())
                         if (attachments != null)
                             addQueryParameter("attachment", attachments)
+                        if (keyboard != null)
+                            addQueryParameter("keyboard", mapper.writeValueAsString(keyboard))
                     }
                     .build()
             )

@@ -1,19 +1,15 @@
 package ru.spliterash.vkVideoUnlocker.video.api
 
 import com.fasterxml.jackson.core.type.TypeReference
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.module.kotlin.readValue
 import io.micronaut.context.annotation.Parameter
 import io.micronaut.context.annotation.Prototype
 import okhttp3.OkHttpClient
-import ru.spliterash.vkVideoUnlocker.common.VkUploaderService
 import ru.spliterash.vkVideoUnlocker.common.okHttp.executeAsync
 import ru.spliterash.vkVideoUnlocker.common.vkModels.VkUploadUrlResponse
 import ru.spliterash.vkVideoUnlocker.video.accessor.VideoAccessor
 import ru.spliterash.vkVideoUnlocker.video.exceptions.VideoLockedException
 import ru.spliterash.vkVideoUnlocker.video.exceptions.VideoNotFoundException
 import ru.spliterash.vkVideoUnlocker.video.vkModels.VkVideo
-import ru.spliterash.vkVideoUnlocker.video.vkModels.VkVideoUploadResponse
 import ru.spliterash.vkVideoUnlocker.vk.VkConst
 import ru.spliterash.vkVideoUnlocker.vk.VkHelper
 import ru.spliterash.vkVideoUnlocker.vk.readResponse
@@ -22,9 +18,8 @@ import ru.spliterash.vkVideoUnlocker.vk.vkModels.VkItemsResponse
 @Prototype
 class VideosImpl(
     @Parameter private val client: OkHttpClient,
-    private val vkUploaderHelper: VkUploaderService,
-    private val mapper: ObjectMapper,
-    private val helper: VkHelper
+    private val helper: VkHelper,
+    private val commons: VideosCommons,
 ) : Videos {
 
     override suspend fun getVideo(id: String): VkVideo {
@@ -72,13 +67,9 @@ class VideosImpl(
             .executeAsync(client)
             .readResponse(helper, VkUploadUrlResponse::class.java)
             .uploadUrl
+        val id = commons.upload(url, accessor, progressMeter)
 
-        val info = accessor.load()
-
-        val response = vkUploaderHelper.upload(url, progressMeter, "video", "video.mp4", info)
-        val mapped = mapper.readValue<VkVideoUploadResponse>(response)
-
-        return "-${groupId}_${mapped.videoId}"
+        return "-${groupId}_${id}"
     }
 
     companion object {

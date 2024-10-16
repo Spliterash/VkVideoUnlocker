@@ -13,11 +13,13 @@ import ru.spliterash.vkVideoUnlocker.common.CoroutineHelper
 import ru.spliterash.vkVideoUnlocker.video.DownloadUrlSupplier
 import ru.spliterash.vkVideoUnlocker.video.Routes
 import ru.spliterash.vkVideoUnlocker.video.accessor.AdvancedVideoAccessor
+import ru.spliterash.vkVideoUnlocker.video.controller.request.VideoSaveRequest
 import ru.spliterash.vkVideoUnlocker.video.controller.response.VideoResponse
 import ru.spliterash.vkVideoUnlocker.video.controller.response.VideoUnlockResponse
 import ru.spliterash.vkVideoUnlocker.video.dto.FullVideo
 import ru.spliterash.vkVideoUnlocker.video.exceptions.UnlockedVideoFromPrivateGroupException
 import ru.spliterash.vkVideoUnlocker.video.service.VideoReUploadService
+import ru.spliterash.vkVideoUnlocker.video.service.VideoSaveService
 import ru.spliterash.vkVideoUnlocker.video.service.VideoService
 import java.util.concurrent.TimeUnit
 
@@ -26,6 +28,7 @@ class VideoController(
     private val videoService: VideoService,
     private val reUploadService: VideoReUploadService,
     private val downloadUrlSupplier: DownloadUrlSupplier,
+    private val videoSaveService: VideoSaveService,
 ) {
     private val log = LoggerFactory.getLogger(VideoController::class.java)
 
@@ -116,5 +119,12 @@ class VideoController(
                     header("Content-Range", info.contentRange)
             }
             .body(StreamedFile(info.stream, MediaType("video/mp4"), 0, info.contentLength))
+    }
+
+    @Post(Routes.SAVE)
+    suspend fun save(@Body request: VideoSaveRequest): Boolean {
+        videoSaveService.processUrl(request.id, request.uploadUrl)
+
+        return true
     }
 }

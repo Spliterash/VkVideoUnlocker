@@ -3,7 +3,6 @@ package ru.spliterash.vkVideoUnlocker.video.dto
 import ru.spliterash.vkVideoUnlocker.group.WorkUserGroupService
 import ru.spliterash.vkVideoUnlocker.group.dto.GroupStatus
 import ru.spliterash.vkVideoUnlocker.video.accessor.AdvancedVideoAccessor
-import ru.spliterash.vkVideoUnlocker.video.accessor.VideoAccessor
 import ru.spliterash.vkVideoUnlocker.video.accessor.VideoAccessorFactory
 import ru.spliterash.vkVideoUnlocker.video.vkModels.VkVideo
 
@@ -12,6 +11,7 @@ import ru.spliterash.vkVideoUnlocker.video.vkModels.VkVideo
  */
 class FullVideo(
     val video: VkVideo,
+    val originalAttachmentId: String,
     private var status: GroupStatus?,
     private val factory: VideoAccessorFactory,
     private val groupService: WorkUserGroupService,

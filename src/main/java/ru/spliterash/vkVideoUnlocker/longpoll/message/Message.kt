@@ -7,6 +7,8 @@ interface Message : AttachmentContainer {
     val fwdMessages: List<FwdMessage>
     val replyMessage: ReplyMessage?
     val text: String?
+    val fromId: Long
+
 
     override fun containers(): List<AttachmentContainer> {
         val list = ArrayList<AttachmentContainer>(fwdMessages.size + 1)

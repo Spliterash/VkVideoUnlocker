@@ -1,6 +1,16 @@
 micronaut:
   application:
     name: vk-unlocker
+  server:
+    cors:
+      enabled: true
+      localhost-pass-through: true
+  router:
+    static-resources:
+      miniapp:
+        enabled: true
+        mapping: /miniapp/**
+        paths: classpath:miniapp
 jackson:
   deserialization:
     READ_UNKNOWN_ENUM_VALUES_USING_DEFAULT_VALUE: true
@@ -14,6 +24,8 @@ datasources:
 vk-unlocker:
   # IP адрес или домен где это всё запущенно
   domain: https://localhost:8080
+  # ID миниприложения для сохранения видосов
+  miniAppId: 52483593
   group:
     # ID группы
     id: group_id

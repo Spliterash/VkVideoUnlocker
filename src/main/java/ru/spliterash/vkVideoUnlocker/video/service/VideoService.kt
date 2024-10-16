@@ -105,11 +105,14 @@ class VideoService(
      * Необходимо проверить видео через baseCheck перед использованием
      */
     private suspend fun getVideoWithTryingLockBehavior(holder: VideoLoader): FullVideo {
+        holder as VideoContentHolder // КРИНЖАТИНА!!!!
+
         // Прежде всего попробуем просто его получить
         try {
             val video = holder.loadVideo()
             return FullVideo(
                 video,
+                holder.attachmentId,
                 null,
                 videoAccessorFactory,
                 workUserGroupService,
@@ -117,14 +120,13 @@ class VideoService(
         } catch (_: VideoLockedException) {
         } catch (_: CantSeeStoryException) {
         }
-        holder as VideoContentHolder // КРИНЖАТИНА!!!!
 
 
         val ownerId = holder.ownerId
         if (ownerId > 0) {
             val video = tryMessageGetBehavior(holder)
 
-            return FullVideo(video, null, videoAccessorFactory, workUserGroupService)
+            return FullVideo(video, holder.attachmentId, null, videoAccessorFactory, workUserGroupService)
         }
 
         val groupId = -ownerId
@@ -135,7 +137,7 @@ class VideoService(
         } catch (locked: VideoLockedException) {
             tryMessageGetBehavior(holder)
         }
-        return FullVideo(video, status, videoAccessorFactory, workUserGroupService)
+        return FullVideo(video, holder.attachmentId, status, videoAccessorFactory, workUserGroupService)
     }
 
     private suspend fun tryMessageGetBehavior(holder: VideoContentHolder): VkVideo {
@@ -206,6 +208,7 @@ class VideoService(
         override suspend fun loadFullVideo(): FullVideo {
             return FullVideo(
                 video,
+                attachmentId,
                 null,
                 videoAccessorFactory,
                 workUserGroupService
@@ -296,6 +299,7 @@ class VideoService(
             baseCheckStory(story)
             return FullVideo(
                 story.video!!,
+                attachmentId,
                 null,
                 videoAccessorFactory,
                 workUserGroupService

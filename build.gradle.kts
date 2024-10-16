@@ -1,9 +1,14 @@
+import com.github.gradle.node.npm.task.NpmTask
+
 plugins {
 //    `java-library`
     kotlin("jvm") version "2.0.0"
     kotlin("kapt") version "2.0.0"
     id("com.github.johnrengelman.shadow") version "8.1.1"
     id("io.micronaut.minimal.application") version "4.3.3"
+
+
+    id("com.github.node-gradle.node") version "7.1.0"
 }
 
 group = "ru.spliterash"
@@ -60,4 +65,30 @@ dependencies {
     implementation("org.apache.commons:commons-compress:1.27.1")
     implementation("io.v47.jaffree:jaffree:1.0.0")
 
+}
+
+node {
+    version.set("20.18.0")
+    download.set(true)
+}
+
+val buildFront by tasks.registering(NpmTask::class) {
+    description = "Собирает фронтенд проект"
+    workingDir.set(file("${projectDir}/front"))
+    args.set(listOf("run", "build"))
+
+    inputs.files(fileTree("front/src"))
+    inputs.file("front/package.json")
+
+    outputs.dir("front/build")
+}
+
+val copyFrontToBuildResources by tasks.registering(Copy::class) {
+    dependsOn(buildFront)
+    from(file("${projectDir}/front/build/").absoluteFile.path)
+    into(file(layout.buildDirectory.file("resources/main/miniapp/")))
+}
+
+tasks.named<ProcessResources>("processResources") {
+    dependsOn(copyFrontToBuildResources)
 }

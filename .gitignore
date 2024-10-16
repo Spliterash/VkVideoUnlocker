@@ -10,3 +10,5 @@ build
 /application.yml
 natives
 /.kotlin
+front/node_modules
+front/dist
