@@ -33,16 +33,14 @@ class SaveVideoChain(
             val pending = saveService.createPendingVideo(full.toAccessor(), message, editableMessage)
 
             editableMessage.sendOrUpdate(
-                "Необходимо выдать доступ на сохранение.\n" +
-                        "Токен не передаётся на сервер, а так же действителен только для твоего IP адреса.\n" +
-                        "Всё что передаётся на сервер, это upload_url, полученный через метод https://dev.vk.com/ru/method/video.save",
+                "Для сохранения видео нажми на кнопку ниже",
                 keyboard = Keyboard(
                     listOf(
                         listOf(
                             Keyboard.Button(
                                 Keyboard.Button.OpenAppAction(
                                     appId,
-                                    "Подтвердить",
+                                    "Открыть сохранялку",
                                     mapper.writeValueAsString(
                                         Payload(
                                             pending.id.toString(),

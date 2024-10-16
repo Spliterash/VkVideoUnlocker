@@ -2,6 +2,7 @@ package ru.spliterash.vkVideoUnlocker.video.service
 
 import com.github.benmanes.caffeine.cache.Caffeine
 import jakarta.inject.Singleton
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import ru.spliterash.vkVideoUnlocker.common.CoroutineHelper.scope
 import ru.spliterash.vkVideoUnlocker.common.InputStreamSource
@@ -44,11 +45,17 @@ class VideoSaveService(
     suspend fun processUrl(id: UUID, uploadUrl: String) {
         val entry = pending.remove(id) ?: throw VideoSaveExpireException()
         scope.launch {
+            val editMessageTask = launch {
+                delay(500) // мб оно оч быстро всё перезальёт, а пользователь ещё miniapp не закрыл
+                entry.message.sendOrUpdate("В процессе")
+            }
             try {
                 val savedId = commons.upload(uploadUrl, entry.accessor)
                 entry.message.sendOrUpdate("Успешно", "video${entry.userId}_$savedId")
             } catch (ex: Exception) {
                 entry.message.sendOrUpdate("Ошибка при загрузке(${ex.javaClass.simpleName}): ${ex.localizedMessage}")
+            } finally {
+                editMessageTask.cancel()
             }
         }
     }
