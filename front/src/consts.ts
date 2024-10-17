@@ -1,6 +1,7 @@
 import bridge from "@vkontakte/vk-bridge";
 
 export const APP_ID = 52483593
+export const VK_API_VERSION = "5.199"
 
 export interface HashInput {
     id: string
@@ -16,10 +17,12 @@ export interface VideoInfo {
 export interface VideoSaveRequest {
     // ID запроса в моей системе
     id: string
+    userId: number
+    groupId?: number
     // Куда перелить
     uploadUrl: string
 }
 
-export function closeApp(){
+export function closeApp() {
     bridge.send("VKWebAppClose")
 }

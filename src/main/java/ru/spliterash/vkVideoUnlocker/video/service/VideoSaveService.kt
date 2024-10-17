@@ -9,6 +9,7 @@ import ru.spliterash.vkVideoUnlocker.common.InputStreamSource
 import ru.spliterash.vkVideoUnlocker.longpoll.message.RootMessage
 import ru.spliterash.vkVideoUnlocker.message.editableMessage.EditableMessage
 import ru.spliterash.vkVideoUnlocker.video.api.VideosCommons
+import ru.spliterash.vkVideoUnlocker.video.controller.request.VideoSaveRequest
 import ru.spliterash.vkVideoUnlocker.video.exceptions.VideoSaveExpireException
 import ru.spliterash.vkVideoUnlocker.video.service.dto.VideoSaveEntry
 import java.util.*
@@ -42,7 +43,8 @@ class VideoSaveService(
         return entry
     }
 
-    suspend fun processUrl(id: UUID, uploadUrl: String) {
+    suspend fun processUrl(input: VideoSaveRequest) {
+        val (id, userId, groupId, uploadUrl) = input
         val entry = pending.remove(id) ?: throw VideoSaveExpireException()
         scope.launch {
             val editMessageTask = launch {
@@ -51,7 +53,8 @@ class VideoSaveService(
             }
             try {
                 val savedId = commons.upload(uploadUrl, entry.accessor)
-                entry.message.sendOrUpdate("Успешно", "video${entry.userId}_$savedId")
+                val ownerId = if (groupId == null) userId else -groupId
+                entry.message.sendOrUpdate("Успешно", "video${ownerId}_${savedId}")
             } catch (ex: Exception) {
                 entry.message.sendOrUpdate("Ошибка при загрузке(${ex.javaClass.simpleName}): ${ex.localizedMessage}")
             } finally {

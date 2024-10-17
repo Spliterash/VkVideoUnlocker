@@ -123,7 +123,7 @@ class VideoController(
 
     @Post(Routes.SAVE)
     suspend fun save(@Body request: VideoSaveRequest): Boolean {
-        videoSaveService.processUrl(request.id, request.uploadUrl)
+        videoSaveService.processUrl(request)
 
         return true
     }

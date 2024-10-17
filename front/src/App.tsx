@@ -4,17 +4,19 @@ import {ScreenSpinner, SplitCol, SplitLayout} from '@vkontakte/vkui';
 import {Home} from './panels';
 import {APP_ID, HashInput} from "./consts.ts";
 import Denied from "./panels/Denied.tsx";
-import bridge, {ReceiveData} from "@vkontakte/vk-bridge";
+import bridge, {ReceiveData, UserInfo} from "@vkontakte/vk-bridge";
 // Поебать
 const hash: HashInput = JSON.parse(decodeURI(window.location.hash.substring(1)))
 
 export const App = () => {
     const [token, setToken] = useState<string | null>(null)
     const [popout, setPopout] = useState<ReactNode | null>(<ScreenSpinner size="large"/>);
+    const [user, setUser] = useState<UserInfo | null>(null)
     const [denied, setDenied] = useState(false)
 
     async function fetchData() {
         await askPermissions()
+        setUser(await bridge.send('VKWebAppGetUserInfo'))
         setPopout(null)
     }
 
@@ -48,8 +50,8 @@ export const App = () => {
     function component() {
         if (denied)
             return <Denied onRetry={askPermissions}/>
-        else if (popout == null)
-            return <Home id={hash.id} token={token ?? ""} video={hash.video}/>
+        else if (popout == null && user != null)
+            return <Home id={hash.id} token={token ?? ""} video={hash.video} user={user}/>
         else
             return <div/>
     }

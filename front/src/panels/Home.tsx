@@ -11,17 +11,19 @@ import {
     SimpleCell,
     Textarea
 } from '@vkontakte/vkui';
-import {VideoInfo, VideoSaveRequest} from "../consts.ts";
+import {VideoInfo, VideoSaveRequest, VK_API_VERSION} from "../consts.ts";
 import axios, {AxiosError} from "axios";
-import bridge from "@vkontakte/vk-bridge";
+import bridge, {GroupInfo, UserInfo} from "@vkontakte/vk-bridge";
 import Success from "./Success.tsx";
 import Error from "./Error.tsx";
+import GroupSelect from "./GroupSelect.tsx";
 
 const ENDPOINT = import.meta.env.VITE_APP_HOST + "/videos/save"
 
 export interface HomeProps extends NavIdProps {
     id: string,
 
+    user: UserInfo,
     video: VideoInfo
     token: string
 }
@@ -33,6 +35,7 @@ export const Home: FC<HomeProps> = (props) => {
     const [error, setError] = useState<string | null>(null)
     const [videoTitle, setVideoTitle] = useState(props.video.name)
     const [videoDescription, setVideoDescription] = useState("Загружено через @unlock_video")
+    const [group, setGroup] = useState<GroupInfo | null>(null)
 
     async function save() {
         if (clicked) return
@@ -40,14 +43,18 @@ export const Home: FC<HomeProps> = (props) => {
         const response = await bridge.send("VKWebAppCallAPIMethod", {
             method: "video.save", params: {
                 access_token: props.token,
-                v: "5.199",
+                v: VK_API_VERSION,
                 name: videoTitle,
-                description: videoDescription
+                description: videoDescription,
+                // @ts-expect-error я манал ещё проперти эту обрабатывать, мне тупо впадлу
+                group_id: group?.id
             }
         })
         const url = response.response["upload_url"]
         const request: VideoSaveRequest = {
             id: props.id,
+            userId: props.user.id,
+            groupId: group?.id,
             uploadUrl: url,
         }
         try {
@@ -83,6 +90,7 @@ export const Home: FC<HomeProps> = (props) => {
                 <FormItem top="Описание">
                     <Textarea value={videoDescription} onChange={e => setVideoDescription(e.target.value)}/>
                 </FormItem>
+                <GroupSelect user={props.user} token={props.token} setValue={setGroup}/>
                 <FormItem>
                     <Button type="submit" size="l" stretched disabled={clicked}>
                         Сохранить
