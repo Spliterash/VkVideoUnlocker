@@ -62,7 +62,8 @@ data class VkVideo(
     @JsonProperty("platform")
     val platform: String?,
     @JsonProperty("files")
-    val files: VideoFiles?
+    val files: VideoFiles?,
+    val restriction: Restriction?,
 ) : AttachmentContent {
 
     fun preview(): URL = image?.lastOrNull()
@@ -102,5 +103,9 @@ data class VkVideo(
             throw VideoEmptyUrlException()
 
     } ?: throw VideoEmptyUrlException()
+
+    data class Restriction(
+        val title: String
+    )
 }
 

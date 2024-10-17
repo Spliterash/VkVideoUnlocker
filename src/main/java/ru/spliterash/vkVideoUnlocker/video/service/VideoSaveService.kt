@@ -54,7 +54,11 @@ class VideoSaveService(
             try {
                 val savedId = commons.upload(uploadUrl, entry.accessor)
                 val ownerId = if (groupId == null) userId else -groupId
-                entry.message.sendOrUpdate("Успешно", "video${ownerId}_${savedId}")
+                entry.message.sendOrUpdate(
+                    "Успешно.\n" +
+                            "По какой то непонятной мне причине, видео может быть не прикреплено к сообщению, в таком случае просто имей ввиду, что оно сохранилось туда, куда ты указал",
+                    "video${ownerId}_${savedId}"
+                )
             } catch (ex: Exception) {
                 entry.message.sendOrUpdate("Ошибка при загрузке(${ex.javaClass.simpleName}): ${ex.localizedMessage}")
             } finally {

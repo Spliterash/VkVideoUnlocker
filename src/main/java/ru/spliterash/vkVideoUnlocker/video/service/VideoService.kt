@@ -12,6 +12,7 @@ import ru.spliterash.vkVideoUnlocker.story.exceptions.StoryExpiredException
 import ru.spliterash.vkVideoUnlocker.story.exceptions.StoryNotVideoException
 import ru.spliterash.vkVideoUnlocker.story.vkModels.VkStory
 import ru.spliterash.vkVideoUnlocker.video.accessor.VideoAccessorFactory
+import ru.spliterash.vkVideoUnlocker.video.api.checkRestriction
 import ru.spliterash.vkVideoUnlocker.video.dto.FullVideo
 import ru.spliterash.vkVideoUnlocker.video.exceptions.*
 import ru.spliterash.vkVideoUnlocker.video.holder.AbstractVideoContentHolder
@@ -141,14 +142,15 @@ class VideoService(
     }
 
     private suspend fun tryMessageGetBehavior(holder: VideoContentHolder): VkVideo {
-        if (holder !is InfoVideoHolder) throw NoSourceException()
-        val chain = holder.source ?: throw NoSourceException()
+        if (holder !is InfoVideoHolder) throw InfoVideoRequiredException()
+        val chain = holder.source
         val source = chain.first() as RootMessage
-        if (source.isGroupChat()) throw NoSourceException()
+        if (source.isGroupChat()) throw PersonalChatRequiredException()
 
         val rootMessageByUser = downloadUser.messages.messageById(messageId = source.id, groupId = group.id)
         val result = messageContentScanner.findContent(rootMessageByUser)
         if (result == null || result.content !is VkVideo || result.content.publicId() != holder.contentId) throw ContentNotFoundException()
+        result.content.checkRestriction()
 
         return result.content
     }
@@ -236,7 +238,7 @@ class VideoService(
                 val wallVideo = messageScanner.scanForAttachment(downloadUserWall) { it.video }
                 if (wallVideo != null) {
                     if (wallVideo.publicId() != this.video.publicId()) throw ContentNotFoundException()
-                    if (wallVideo.contentRestricted) throw VideoLockedException()
+                    wallVideo.checkRestriction()
 
                     return wallVideo
                 }

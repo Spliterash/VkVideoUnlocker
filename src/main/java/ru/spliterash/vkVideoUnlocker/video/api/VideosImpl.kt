@@ -41,8 +41,7 @@ class VideosImpl(
             .readResponse(helper, object : TypeReference<VkItemsResponse<VkVideo>>() {})
 
         val video = mapped.items.firstOrNull() ?: throw VideoNotFoundException()
-        if (video.contentRestricted)
-            throw VideoLockedException()
+        video.checkRestriction()
 
         return video
     }
@@ -76,4 +75,8 @@ class VideosImpl(
         const val USER_AGENT =
             "KateMobileAndroid/99 lite-535 (Android 11; SDK 30; arm64-v8a; asus Zenfone Max Pro M1; ru)"
     }
+}
+
+fun VkVideo.checkRestriction() {
+    if (contentRestricted) throw VideoLockedException(restriction?.title ?: "null")
 }
