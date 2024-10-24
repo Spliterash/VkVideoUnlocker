@@ -76,7 +76,7 @@ class LongPollService(
                             } catch (ex: VkUnlockerException) {
                                 if (ex is VkApiException)
                                     ex.printStackTrace()
-                                val info = ex.messageForUser()
+                                val info = ex.messageForUser(message)
                                 editableMessage.sendOrUpdate(info)
                             } catch (ex: Exception) {
                                 ex.printStackTrace()

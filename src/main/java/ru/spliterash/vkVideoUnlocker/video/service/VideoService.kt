@@ -6,6 +6,7 @@ import ru.spliterash.vkVideoUnlocker.longpoll.message.RootMessage
 import ru.spliterash.vkVideoUnlocker.longpoll.message.attachments.AttachmentContainer
 import ru.spliterash.vkVideoUnlocker.longpoll.message.attachments.Wall
 import ru.spliterash.vkVideoUnlocker.longpoll.message.isGroupChat
+import ru.spliterash.vkVideoUnlocker.longpoll.message.isPersonalChat
 import ru.spliterash.vkVideoUnlocker.message.utils.MessageContentScanner
 import ru.spliterash.vkVideoUnlocker.story.exceptions.CantSeeStoryException
 import ru.spliterash.vkVideoUnlocker.story.exceptions.StoryExpiredException
@@ -27,6 +28,7 @@ import ru.spliterash.vkVideoUnlocker.vk.actor.GroupUser
 import ru.spliterash.vkVideoUnlocker.vk.actor.types.DownloadUser
 import ru.spliterash.vkVideoUnlocker.vk.actor.types.PokeUser
 import ru.spliterash.vkVideoUnlocker.vk.api.VkApi
+import ru.spliterash.vkVideoUnlocker.wall.exceptions.WallPostNotFoundException
 
 @Singleton
 class VideoService(
@@ -107,10 +109,10 @@ class VideoService(
      */
     private suspend fun getVideoWithTryingLockBehavior(holder: VideoLoader): FullVideo {
         holder as VideoContentHolder // КРИНЖАТИНА!!!!
-
+        val personalInfo = holder is InfoVideoHolder && (holder.source.first() as RootMessage).isPersonalChat()
         // Прежде всего попробуем просто его получить
         try {
-            val video = holder.loadVideo()
+            val video = if (personalInfo) tryMessageGetBehavior(holder) else holder.loadVideo()
             return FullVideo(
                 video,
                 holder.attachmentId,
@@ -118,15 +120,15 @@ class VideoService(
                 videoAccessorFactory,
                 workUserGroupService,
             )
+
         } catch (_: VideoLockedException) {
         } catch (_: CantSeeStoryException) {
+        } catch (_: WallPostNotFoundException) {
         }
-
 
         val ownerId = holder.ownerId
         if (ownerId > 0) {
             val video = tryMessageGetBehavior(holder)
-
             return FullVideo(video, holder.attachmentId, null, videoAccessorFactory, workUserGroupService)
         }
 
@@ -233,15 +235,15 @@ class VideoService(
 
         override suspend fun loadVideo(): VkVideo {
             val wall = source.firstOrNull { it is Wall }
-            if (wall is Wall) {
-                val downloadUserWall = downloadUser.walls.getById("${wall.ownerId}_${wall.id}")
-                val wallVideo = messageScanner.scanForAttachment(downloadUserWall) { it.video }
-                if (wallVideo != null) {
-                    if (wallVideo.publicId() != this.video.publicId()) throw ContentNotFoundException()
-                    wallVideo.checkRestriction()
+            if (wall !is Wall) return downloadUser.videos.getVideo(contentId)
 
-                    return wallVideo
-                }
+            val downloadUserWall = downloadUser.walls.getById("${wall.ownerId}_${wall.id}")
+            val wallVideo = messageScanner.scanForAttachment(downloadUserWall) { it.video }
+            if (wallVideo != null) {
+                if (wallVideo.publicId() != this.video.publicId()) throw ContentNotFoundException()
+                wallVideo.checkRestriction()
+
+                return wallVideo
             }
             return downloadUser.videos.getVideo(contentId)
         }

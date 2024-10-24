@@ -1,5 +1,7 @@
 package ru.spliterash.vkVideoUnlocker.common.exceptions
 
+import ru.spliterash.vkVideoUnlocker.longpoll.message.RootMessage
+
 abstract class VkUnlockerException : RuntimeException {
     constructor() : super()
     constructor(message: String?) : super(message)
@@ -12,5 +14,5 @@ abstract class VkUnlockerException : RuntimeException {
         writableStackTrace
     )
 
-    abstract fun messageForUser(): String
+    abstract fun messageForUser(source: RootMessage? = null): String
 }
