@@ -65,7 +65,7 @@ class VideoController(
         val holder = videoService.wrapAttachmentId(attachmentId)
         val locked = holder
             .fullVideo()
-            .shouldBeLocked()
+            .shouldBeLocked(true)
         if (locked)
             throw UnlockedVideoFromPrivateGroupException()
 

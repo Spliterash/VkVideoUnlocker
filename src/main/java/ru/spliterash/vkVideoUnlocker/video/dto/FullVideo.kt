@@ -18,17 +18,17 @@ class FullVideo(
 ) {
     private var accessor: AdvancedVideoAccessor? = null
 
-    suspend fun status(): GroupStatus {
+    suspend fun status(withJoin: Boolean): GroupStatus {
         if (video.ownerId > 0)
             return GroupStatus.PUBLIC // Пользователь
 
-        return status ?: groupService.joinGroup(-video.ownerId).also {
+        return status ?: groupService.getGroupStatus(-video.ownerId, withJoin).also {
             status = it
         }
     }
 
-    suspend fun shouldBeLocked(): Boolean {
-        return status() != GroupStatus.PUBLIC
+    suspend fun shouldBeLocked(withJoin: Boolean): Boolean {
+        return status(withJoin) != GroupStatus.PUBLIC
     }
 
     fun toAccessor(): AdvancedVideoAccessor {

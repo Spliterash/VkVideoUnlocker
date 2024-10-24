@@ -133,7 +133,7 @@ class VideoService(
         }
 
         val groupId = -ownerId
-        val status = workUserGroupService.joinGroup(groupId)
+        val status = workUserGroupService.getGroupStatus(groupId, true)
 
         val video = try {
             holder.loadVideo()

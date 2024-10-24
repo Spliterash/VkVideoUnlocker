@@ -74,7 +74,7 @@ class VideoReUploadService(
         val fullVideo = holder.fullVideo()
 
         val originalAttachmentId = holder.attachmentId
-        val private = fullVideo.shouldBeLocked()
+        val private = fullVideo.shouldBeLocked(false)
         if (private && !privateGroupWork) throw PrivateVideoDisabledException()
         if (fullVideo.video.duration > 60 * 5) throw VideoTooLongException()
 

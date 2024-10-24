@@ -28,7 +28,7 @@ class WorkUserGroupService(
      * @return Статус группы
      */
     @Throws(VideoGroupPrivateException::class, VideoGroupRequestSendException::class)
-    suspend fun joinGroup(groupId: Long): GroupStatus {
+    suspend fun getGroupStatus(groupId: Long, withJoin: Boolean): GroupStatus {
         val groupInfo = lock.withLock { groups[groupId] }
         if (groupInfo != null) {
             val groupIsOpen = groupInfo.groupStatus == GroupStatus.PUBLIC
@@ -37,8 +37,8 @@ class WorkUserGroupService(
                 return groupInfo.groupStatus
 
             if (groupInfo.groupStatus == GroupStatus.PRIVATE)
-                throw VideoGroupPrivateException()
-
+                if (withJoin) throw VideoGroupPrivateException()
+                else return GroupStatus.PRIVATE
         }
 
         val actualInfo = user.groups.status(groupId)
@@ -48,19 +48,26 @@ class WorkUserGroupService(
                 GroupStatus.CLOSE -> {
                     when (actualInfo.memberStatus) {
                         MemberStatus.NO -> {
-                            user.groups.join(groupId)
                             actualInfo.memberStatus = MemberStatus.REQUEST_SEND
-                            throw VideoGroupRequestSendException()
+                            if (withJoin) {
+                                user.groups.join(groupId)
+                                throw VideoGroupRequestSendException()
+                            } else return GroupStatus.PRIVATE
                         }
 
-                        MemberStatus.REQUEST_SEND -> throw VideoGroupRequestSendException()
+                        MemberStatus.REQUEST_SEND -> if (withJoin)
+                            throw VideoGroupRequestSendException()
+                        else
+                            return GroupStatus.PRIVATE
+
                         else -> Unit
                     }
                 }
 
                 GroupStatus.PRIVATE -> {
                     if (actualInfo.memberStatus != MemberStatus.MEMBER)
-                        throw VideoGroupPrivateException()
+                        if (withJoin) throw VideoGroupPrivateException()
+                        else return GroupStatus.PRIVATE
                 }
 
                 GroupStatus.PUBLIC -> {
