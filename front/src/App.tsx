@@ -5,8 +5,15 @@ import {Home} from './panels';
 import {APP_ID, HashInput} from "./consts.ts";
 import Denied from "./panels/Denied.tsx";
 import bridge, {ReceiveData, UserInfo} from "@vkontakte/vk-bridge";
+import Error from "./panels/Error.tsx";
 // Поебать
-const hash: HashInput = JSON.parse(decodeURI(window.location.hash.substring(1)))
+let hash: HashInput | null = null
+
+try {
+    hash = JSON.parse(decodeURI(window.location.hash.substring(1)))
+} catch (e) {
+    // ignore
+}
 
 export const App = () => {
     const [token, setToken] = useState<string | null>(null)
@@ -44,11 +51,16 @@ export const App = () => {
     }
 
     useEffect(() => {
-        fetchData();
+        if (hash != null)
+            fetchData();
+        else
+            setPopout(null)
     }, []);
 
     function component() {
-        if (denied)
+        if (hash == null)
+            return <Error message={"Прямое открытие приложения не поддерживается"}/>
+        else if (denied)
             return <Denied onRetry={askPermissions}/>
         else if (popout == null && user != null)
             return <Home id={hash.id} token={token ?? ""} video={hash.video} user={user}/>
