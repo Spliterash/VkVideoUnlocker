@@ -64,7 +64,7 @@ class DefaultVideoChain(
                 val full = video.fullVideo()
                 val pending = videoSaveService.createPendingVideo(full.toAccessor(), message, editableMessage)
                 editableMessage.sendOrUpdate(
-                    "Видео не попадает под ограничение: ${ex.restrictionName}.\n" +
+                    "Видео попадает под ограничение: ${ex.restrictionName}.\n" +
                             "Перезаливать от своего имени я его не буду, но ты можешь сделать это от своего, либо посмотреть по ссылке: \n$url",
                     keyboard = videoSaveService.createKeyboard(pending.id, full)
                 )
