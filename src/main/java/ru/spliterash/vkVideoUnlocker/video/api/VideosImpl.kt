@@ -58,7 +58,7 @@ class VideosImpl(
             .url(
                 VkConst.urlBuilder("video.save")
                     .addQueryParameter("name", name)
-                    .addQueryParameter("privacy_view", if (private) "by_link" else "all")
+                    .addQueryParameter("privacy_view", if (private) "3" else "0")
                     .addQueryParameter("group_id", groupId.toString())
                     .build()
             )

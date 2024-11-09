@@ -1,12 +1,9 @@
 package ru.spliterash.vkVideoUnlocker.messageChain.handlers
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import io.micronaut.context.annotation.Value
 import jakarta.inject.Singleton
 import ru.spliterash.vkVideoUnlocker.longpoll.message.RootMessage
 import ru.spliterash.vkVideoUnlocker.message.editableMessage.EditableMessage
 import ru.spliterash.vkVideoUnlocker.message.utils.MessageUtils
-import ru.spliterash.vkVideoUnlocker.message.vkModels.request.Keyboard
 import ru.spliterash.vkVideoUnlocker.messageChain.ActivationMessageHandler
 import ru.spliterash.vkVideoUnlocker.video.service.VideoSaveService
 
@@ -14,10 +11,8 @@ import ru.spliterash.vkVideoUnlocker.video.service.VideoSaveService
 class SaveVideoChain(
     private val utils: MessageUtils,
     private val saveService: VideoSaveService,
-    @Value("\${vk-unlocker.miniAppId}")
-    private val appId: String,
-    private val mapper: ObjectMapper,
-) : ActivationMessageHandler(
+
+    ) : ActivationMessageHandler(
     "сохранить",
     "save",
 ) {
@@ -33,30 +28,9 @@ class SaveVideoChain(
 
             editableMessage.sendOrUpdate(
                 "Для сохранения видео нажми на кнопку ниже",
-                keyboard = Keyboard(
-                    listOf(
-                        listOf(
-                            Keyboard.Button(
-                                Keyboard.Button.OpenAppAction(
-                                    appId,
-                                    "Открыть сохранялку",
-                                    mapper.writeValueAsString(
-                                        Payload(
-                                            pending.id.toString(),
-                                            Payload.Video(
-                                                full.originalAttachmentId,
-                                                full.video.title,
-                                                full.video.preview().toString()
-                                            )
-                                        )
-                                    )
-                                )
-                            )
-                        )
-                    )
-                )
+                keyboard = saveService.createKeyboard(pending.id, full)
             )
-        } // Вот это лесенка, прикольна
+        }
 
         return true
     }

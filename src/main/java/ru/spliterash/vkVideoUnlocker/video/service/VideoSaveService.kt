@@ -1,6 +1,8 @@
 package ru.spliterash.vkVideoUnlocker.video.service
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import com.github.benmanes.caffeine.cache.Caffeine
+import io.micronaut.context.annotation.Value
 import jakarta.inject.Singleton
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -8,8 +10,11 @@ import ru.spliterash.vkVideoUnlocker.common.CoroutineHelper.scope
 import ru.spliterash.vkVideoUnlocker.common.InputStreamSource
 import ru.spliterash.vkVideoUnlocker.longpoll.message.RootMessage
 import ru.spliterash.vkVideoUnlocker.message.editableMessage.EditableMessage
+import ru.spliterash.vkVideoUnlocker.message.vkModels.request.Keyboard
+import ru.spliterash.vkVideoUnlocker.messageChain.handlers.SaveVideoChain.Payload
 import ru.spliterash.vkVideoUnlocker.video.api.VideosCommons
 import ru.spliterash.vkVideoUnlocker.video.controller.request.VideoSaveRequest
+import ru.spliterash.vkVideoUnlocker.video.dto.FullVideo
 import ru.spliterash.vkVideoUnlocker.video.exceptions.VideoSaveExpireException
 import ru.spliterash.vkVideoUnlocker.video.service.dto.VideoSaveEntry
 import java.util.*
@@ -18,6 +23,9 @@ import java.util.concurrent.TimeUnit
 @Singleton
 class VideoSaveService(
     private val commons: VideosCommons,
+    @Value("\${vk-unlocker.miniAppId}")
+    private val appId: String,
+    private val mapper: ObjectMapper,
 ) {
     private val pending = Caffeine
         .newBuilder()
@@ -25,6 +33,31 @@ class VideoSaveService(
         .build<UUID, VideoSaveEntry>()
         .asMap()
 
+    // Вот это лесенка, прикольна
+    fun createKeyboard(pendingId: UUID, full: FullVideo): Keyboard {
+        return Keyboard(
+            listOf(
+                listOf(
+                    Keyboard.Button(
+                        Keyboard.Button.OpenAppAction(
+                            appId,
+                            "Открыть сохранялку",
+                            mapper.writeValueAsString(
+                                Payload(
+                                    pendingId.toString(),
+                                    Payload.Video(
+                                        full.originalAttachmentId,
+                                        full.video.title,
+                                        full.video.preview().toString()
+                                    )
+                                )
+                            )
+                        )
+                    )
+                )
+            )
+        )
+    }
 
     fun createPendingVideo(
         videoSource: InputStreamSource,
@@ -56,7 +89,7 @@ class VideoSaveService(
                 val ownerId = if (groupId == null) userId else -groupId
                 entry.message.sendOrUpdate(
                     "Успешно.\n" +
-                            "По какой то непонятной мне причине, видео может быть не прикреплено к сообщению, в таком случае просто имей ввиду, что оно сохранилось туда, куда ты указал",
+                            "Если назначение является закрытой группой или страницей, то видео не будет прикреплено к сообщению, но, оно есть там, куда ты сохранил",
                     "video${ownerId}_${savedId}"
                 )
             } catch (ex: Exception) {
