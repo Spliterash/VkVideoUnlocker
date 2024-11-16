@@ -13,7 +13,7 @@ class MessageUtils(
     private val messageContentScanner: MessageContentScanner,
     private val videoService: VideoService,
 ) {
-    private val vkUrlPattern = Pattern.compile("(?:https?://)?vk\\.com/(?<attachment>(?:video|wall|story)-?\\d+_\\d+)")
+    private val vkUrlPattern = Pattern.compile("(?:https?://)?vk\\.com/.*?(?<attachment>(?:video|wall|story)-?\\d+_\\d+)")
 
     suspend fun scanForVideoContent(root: RootMessage): VideoContentHolder? {
         val scanResult = messageContentScanner.findContent(root)
