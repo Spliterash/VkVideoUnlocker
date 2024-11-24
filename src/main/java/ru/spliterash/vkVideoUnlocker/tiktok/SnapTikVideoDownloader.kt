@@ -8,10 +8,11 @@ import ru.spliterash.vkVideoUnlocker.common.InfoLoaderService
 import ru.spliterash.vkVideoUnlocker.common.okHttp.OkHttpFactory
 import ru.spliterash.vkVideoUnlocker.common.okHttp.executeAsync
 import ru.spliterash.vkVideoUnlocker.video.accessor.UrlVideoAccessorImpl
+import ru.spliterash.vkVideoUnlocker.video.accessor.VideoAccessor
 import java.util.regex.Pattern
 
 // Код деобфускации спизжен отсюда: https://github.com/Ty3uK/snaptik-bot/blob/main/src/url_resolver/snap/util.rs
-@Singleton
+//@Singleton
 class SnapTikVideoDownloader(
     okHttpFactory: OkHttpFactory,
     private val objectMapper: ObjectMapper,
@@ -26,7 +27,7 @@ class SnapTikVideoDownloader(
     private val numberPattern =
         Pattern.compile("https://www\\.tiktok\\.com/oembed\\?url=https://www\\.tiktok\\.com/@tiktok/video/(\\d+)")
 
-    override suspend fun download(videoUrl: String): TiktokVideo {
+    override suspend fun download(videoUrl: String): VideoAccessor {
         val token = getToken()
 
         val encryptedJs = Request.Builder()
@@ -59,7 +60,6 @@ class SnapTikVideoDownloader(
         }
         val numberMatcher = numberPattern.matcher(decodedJs)
         if (!numberMatcher.find()) throw IllegalStateException("Failed to parse video url from snaptik response")
-        val number = numberMatcher.group(1)
         val hdTokenMatcher = hdTokenPattern.matcher(decodedJs)
         if (!hdTokenMatcher.find()) throw IllegalStateException("snaptik stage 4 error: extract hd token, decrypted response: $decodedJs")
         val hdToken = hdTokenMatcher.group(1)
@@ -74,7 +74,7 @@ class SnapTikVideoDownloader(
         val node = objectMapper.readTree(linkResponse)
         val url = node.get("url").asText()
 
-        return TiktokVideo(number, UrlVideoAccessorImpl(infoLoaderService, client, url))
+        return  UrlVideoAccessorImpl(infoLoaderService, client, url)
     }
 
     private suspend fun getToken(): String {
@@ -83,12 +83,12 @@ class SnapTikVideoDownloader(
             .get()
             .build()
             .executeAsync(client)
-            .body
-            .string()
+            .use { it.body.string() }
         val matcher = tokenPattern.matcher(response)
         if (!matcher.find()) throw IllegalStateException("snaptik stage 1 error: token extract")
 
         return matcher.group(1)
+
     }
 
 

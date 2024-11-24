@@ -29,15 +29,14 @@ class TiktokService(
     private val tiktokPhotoDownloader: TiktokPhotoDownloader,
     private val fFmpegService: FFmpegService,
 ) {
-    suspend fun getVkId(tiktokVideoUrl: String, progressMeter: ProgressMeter): String {
-        val info = tiktokVideoDownloader.download(tiktokVideoUrl)
-        val video = tiktokVideoRepository.findVideo(info.id)
+    suspend fun getVkId(tiktokVideoUrl: String, tiktokVideoId: String, progressMeter: ProgressMeter): String {
+        val video = tiktokVideoRepository.findVideo(tiktokVideoId)
         if (video != null) return video.vkId
+        val accessor = tiktokVideoDownloader.download(tiktokVideoUrl)
+        val vkId = reUpload(tiktokVideoId, accessor, progressMeter)
 
-        val vkId = reUpload(info.id, info.accessor, progressMeter)
 
-        tiktokVideoRepository.save(TiktokVideoEntity(info.id, vkId))
-
+        tiktokVideoRepository.save(TiktokVideoEntity(tiktokVideoId, vkId))
         return vkId
     }
 

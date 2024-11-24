@@ -42,8 +42,9 @@ class TiktokChain(
         }
         editableMessage.sendOrUpdate("Начинаем обработку tiktok контента, это может быть долго")
         val contentType = directUrlMatcher.group("type")
+        val tiktokVideoId = directUrlMatcher.group("id")
         if (contentType == "video") {
-            val id = tiktokService.getVkId(videoUrl, MessageNotificationProgressMeter(editableMessage))
+            val id = tiktokService.getVkId(videoUrl, tiktokVideoId, MessageNotificationProgressMeter(editableMessage))
             editableMessage.sendOrUpdate(attachments = "video$id")
         } else if (contentType == "photo") {
             val (musicAttachment, attachmentIds) = tiktokService.getPhotoAttachmentIds(message.peerId, videoUrl)
