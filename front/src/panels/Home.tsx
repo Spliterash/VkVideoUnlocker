@@ -46,6 +46,7 @@ export const Home: FC<HomeProps> = (props) => {
                 v: VK_API_VERSION,
                 name: videoTitle,
                 description: videoDescription,
+                target: "post",
                 // @ts-expect-error я манал ещё проперти эту обрабатывать, мне тупо впадлу
                 group_id: group?.id
             }
