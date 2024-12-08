@@ -60,7 +60,7 @@ class VideosImpl(
                     .addQueryParameter("name", name)
                     .addQueryParameter("privacy_view", if (private) "3" else "0")
                     .addQueryParameter("group_id", groupId.toString())
-                    .addQueryParameter("target", "post")
+                    .apply { if (private) addQueryParameter("target", "post") }
                     .build()
             )
             .build()
